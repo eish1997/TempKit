@@ -1,0 +1,15 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
+const source=fs.readFileSync(path.join(__dirname,'../ui/board.js'),'utf8');
+const tasks=new Map([['real',{id:'real',attempt:1,event_version:3,request:{capability:{connection_id:'gateway'}}}],['mock',{id:'mock',attempt:1,event_version:2,request:{capability:{connection_id:'internal-mock'}}}]]);
+const context=vm.createContext({taskMirror:{tasks,imageWork:null}});
+vm.runInContext(source.slice(source.indexOf('function jobIsMock('),source.indexOf('function renderJobs(')),context);
+const status=j=>{context.job=j;return vm.runInContext('jobStatus(job)',context)};
+assert.equal(status({hostTaskId:'real',state:'running'}),'生成中…');assert.equal(status({hostTaskId:'mock',state:'running'}),'模拟生成中…');
+assert.equal(status({hostTaskId:'real',state:'failed'}),'生成失败');assert.equal(status({hostTaskId:'mock',state:'failed'}),'模拟失败');
+assert.equal(status({state:'failed',admissionError:'not admitted'}),'提交失败');
+context.taskMirror.imageWork={task_id:'real',attempt:1,event_version:3,save_failed:true};
+assert.equal(status({hostTaskId:'real',state:'running'}),'结果保存失败');assert.equal(status({hostTaskId:'mock',state:'running'}),'模拟生成中…');
+context.taskMirror.imageWork.attempt=0;assert.equal(status({hostTaskId:'real',state:'running'}),'生成中…','old attempt cannot relabel current task');
+context.taskMirror.imageWork.attempt=1;context.taskMirror.imageWork.event_version=2;assert.equal(status({hostTaskId:'real',state:'running'}),'生成中…');
+assert.equal(status({hostTaskId:'real',state:'finalizing',failure:{stage:'archive'}}),'结果保存失败');
+console.log('Real/mock status, save failure and stale attempt/version isolation passed.');

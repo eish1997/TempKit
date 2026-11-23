@@ -1,0 +1,30 @@
+[package]
+name = "quickgen-desktop"
+version = "0.1.0"
+edition = "2021"
+default-run = "quickgen-desktop"
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+desktop-diagnostics = []
+
+[build-dependencies]
+tauri-build = { version = "=2.7.4", features = [] }
+
+[dependencies]
+url = "=2.5.8"
+tauri = { version = "=2.12.5", features = ["tray-icon"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["float_roundtrip"] }
+base64 = "=0.23.1"
+rusqlite = { version = "=0.42.0", features = ["bundled"] }
+image = { version = "=0.25.8", default-features = false, features = ["png", "jpeg", "webp"] }
+sha2 = "=0.10.9"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "=0.62.2", features = ["Win32_Storage_FileSystem", "Win32_Networking_WinHttp", "Win32_Security_Cryptography", "Win32_System_DataExchange", "Win32_System_Memory", "Win32_System_Com", "Win32_System_Ole", "Win32_System_SystemServices", "Win32_UI_Shell", "Win32_UI_Shell_Common", "Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading", "Win32_Graphics_Gdi", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse"] }
+
+
+[target.'cfg(windows)'.dependencies.windows-core]
+version = "=0.62.2"

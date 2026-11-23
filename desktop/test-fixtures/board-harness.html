@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><base href="../ui/"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>QuickGen · 单屏画板</title><link rel="stylesheet" href="board.css?v=desktop-finish-1"></head>
+<body>
+  <div id="desktop" hidden></div><input id="simulate-failure" type="checkbox" hidden>
+  <div id="canvas" hidden aria-label="图片画板"><div id="world"></div></div>
+  <div id="canvas-tools" hidden role="toolbar" aria-label="画板操作">
+    <button id="zoom-out" aria-label="缩小画板" data-icon="minus"></button><button id="zoom-value" aria-label="还原到百分之百">100%</button><button id="zoom-in" aria-label="放大画板" data-icon="plus"></button><i></i><button id="fit" aria-label="排列并查看全部图片" data-icon="maximize"></button><button id="canvas-mode" aria-label="切换桌面穿透模式" aria-pressed="false" data-icon="monitor"></button><button id="canvas-close" aria-label="关闭画板" data-icon="x"></button>
+  </div>
+  <section id="dock" aria-label="QuickGen 能力面板">
+    <button id="stack" aria-label="打开图片画板" aria-expanded="false"><span id="stack-pictures"></span></button>
+    <nav id="outline" hidden aria-label="图片大纲，按加入时间从新到旧"><div id="outline-list"></div></nav>
+    <div id="panel">
+      <header><button id="import" aria-label="添加图片" data-icon="image-plus"></button><button id="theme" aria-label="切换浅色主题" data-icon="monitor"></button><button id="add-ability" aria-label="自定义能力" data-icon="plus"></button><button id="library" aria-label="预设库" data-icon="library"></button><button id="height" aria-label="调整卡片高度" data-icon="arrow-up-down"></button><span></span><button id="pin" aria-label="常驻面板" aria-pressed="false" data-icon="pin"></button></header>
+      <div id="abilities"></div>
+      <div id="receipt" hidden><img id="receipt-image" alt="模拟任务输入"><div><strong id="receipt-name"></strong><span>已记录模拟触发</span></div><button id="receipt-close" aria-label="关闭模拟记录" data-icon="x"></button></div>
+    </div>
+  </section>
+  <button id="notch" hidden aria-label="展开能力面板" data-icon="panel-top"></button>
+  <div id="notice" role="status" hidden></div>
+  <input id="files" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
+  <script src="icons.js"></script><script src="theme-icons.js"></script><script src="overlay-icons.js"></script><script src="board-panel-layout.js"></script><script src="board-motion.js"></script><script src="../test-fixtures/board-bridge.js"></script><script src="board.js"></script>
+</body></html>
+

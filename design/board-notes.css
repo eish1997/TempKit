@@ -1,0 +1,56 @@
+.desktop-note{position:fixed;display:flex;flex-direction:column;background:#f4efda;color:#494737;border:1px solid #cbc4a9;border-radius:6px;box-shadow:0 10px 32px #0003;min-width:220px;min-height:160px;overflow:hidden}.desktop-note header{display:flex;align-items:center;gap:2px;padding:5px 7px;height:35px;flex-shrink:0;cursor:grab;touch-action:none;user-select:none}.note-grip{flex:1;color:#aaa38b;font-size:18px;padding-left:5px}.desktop-note header button{width:26px;height:25px;color:#77715c;font-size:17px}.desktop-note button:hover{background:#6b603b14}.desktop-note button[aria-pressed=true]{background:#d9d0aa;color:#494122}.desktop-note textarea{flex:1;min-height:0;width:100%;resize:none;background:transparent;border:0;outline:none;color:inherit;padding:8px 18px 22px;font:15px/1.8 "Segoe UI","Microsoft YaHei",sans-serif;user-select:text}.desktop-note textarea::placeholder{color:#a19b86}.desktop-note .note-resize{position:absolute;right:2px;bottom:2px;width:16px;height:16px;cursor:nwse-resize;touch-action:none;background:linear-gradient(135deg,transparent 55%,#9d957b 56%,#9d957b 60%,transparent 61%,transparent 75%,#9d957b 76%,#9d957b 80%,transparent 81%);opacity:.5}.note-menu{position:absolute;top:34px;right:10px;background:#fffbeb;padding:4px;border:1px solid #cbc4a9;border-radius:6px;box-shadow:0 4px 12px #0002}.note-menu button{padding:8px 14px;font-size:12px;color:#925342}.desktop-note:focus-within{border-color:#a99b65}.desktop-note button:focus-visible{outline:2px solid #968553;outline-offset:-2px}
+/* Loose paper stack rests across the panel edge; the hit area stays invisible. */
+#panel-bottom-tools{position:relative;height:40px;margin-top:8px;overflow:visible}
+#panel-bottom-tools:before{content:"";position:absolute;top:0;left:48px;right:4px;height:1px;background:var(--text);opacity:.06}
+#panel-bottom-tools #notes-entry{position:absolute;left:-17px;bottom:-9px;width:64px;height:52px;overflow:visible;border-radius:0;background:transparent;z-index:3}
+#notes-entry:hover,#notes-entry[aria-expanded=true]{background:transparent}
+#notes-entry:focus-visible{outline:0}
+#notes-entry:focus-visible .note-stack-icon{filter:drop-shadow(0 0 3px #fff2bc)}
+.note-stack-icon{position:relative;display:block;width:54px;height:44px;flex-shrink:0;pointer-events:none;filter:drop-shadow(0 3px 3px #0004)}
+.note-stack-icon i{position:absolute;display:block;width:33px;height:35px;border-radius:2px;transform-origin:50% 50%}
+.note-stack-icon i:nth-child(1){left:8px;top:4px;transform:rotate(-7deg);background:linear-gradient(145deg,#c8b580,#ad9865);box-shadow:0 3px 5px #0003,inset 0 0 0 1px #e9d9ac55}
+.note-stack-icon i:nth-child(2){left:14px;top:4px;transform:rotate(4deg);background:linear-gradient(145deg,#fff0c8,#ebd8a8);box-shadow:-3px 2px 5px #57401f55,0 2px 3px #0002,inset 0 0 0 1px #fff5}
+#notes-entry:hover .note-stack-icon,#notes-entry[aria-expanded=true] .note-stack-icon{filter:brightness(1.07) drop-shadow(0 4px 4px #0004)}
+#dock>#receipt{position:absolute;top:calc(100% + 6px);left:0;width:100%;margin:0;padding:7px;border:1px solid var(--border);background:var(--bg);border-radius:var(--radius);box-shadow:var(--shadow)}
+
+
+
+/* Front sheet comes forward; ink is revealed left to right, one line at a time. */
+.note-stack-icon .note-front{transition:transform 220ms var(--ease);isolation:isolate}
+.note-front:after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:-4px 6px 9px #30250c66;opacity:0;z-index:-1;transition:opacity 220ms var(--ease)}
+#notes-entry .note-writing{position:absolute;inset:0;width:33px;height:35px;overflow:visible;stroke-width:.8}
+.note-rules{stroke:#9d885c;opacity:.23;stroke-width:.55}
+.note-ink{stroke:#746040;stroke-linecap:round;stroke-linejoin:round}
+.note-ink path{clip-path:inset(0 100% 0 0);opacity:0;transition:clip-path 140ms linear,opacity 100ms ease}
+@media(hover:hover) and (pointer:fine){
+ #notes-entry:hover .note-front{transform:translateY(-3px) rotate(0deg) scale(1.16)}
+ #notes-entry:hover .note-front:after{opacity:1}
+ #notes-entry:hover .note-ink path{clip-path:inset(0 0 0 0);opacity:1;transition:clip-path 220ms linear,opacity 100ms ease}
+ #notes-entry:hover .note-ink path:nth-child(1){transition-delay:100ms}
+ #notes-entry:hover .note-ink path:nth-child(2){transition-delay:300ms}
+ #notes-entry:hover .note-ink path:nth-child(3){transition-delay:500ms}
+}
+@media(prefers-reduced-motion:reduce){
+ .note-stack-icon .note-front,.note-front:after,.note-ink path{transition:none!important}
+ #notes-entry:hover .note-front{transform:rotate(4deg)}
+}
+/* Explicit prototype preview override; never changes the OS preference. */
+body.notes-full-motion .note-front{transition:transform 220ms var(--ease)!important}
+body.notes-full-motion .note-front:after{transition:opacity 220ms var(--ease)!important}
+body.notes-full-motion .note-ink path{transition:clip-path 140ms linear,opacity 100ms ease!important}
+@media(hover:hover) and (pointer:fine){
+ body.notes-full-motion #notes-entry:hover .note-front{transform:translateY(-3px) rotate(0deg) scale(1.16)}
+ body.notes-full-motion #notes-entry:hover .note-ink path{transition:clip-path 220ms linear,opacity 100ms ease!important}
+ body.notes-full-motion #notes-entry:hover .note-ink path:nth-child(1){transition-delay:100ms!important}
+ body.notes-full-motion #notes-entry:hover .note-ink path:nth-child(2){transition-delay:300ms!important}
+ body.notes-full-motion #notes-entry:hover .note-ink path:nth-child(3){transition-delay:500ms!important}
+}
+/* Unbounded note overview; only the camera moves, never desktop coordinates. */
+#notes-overview{position:fixed;inset:56px 0 0;z-index:35;overflow:hidden;touch-action:none;cursor:grab;user-select:none;overscroll-behavior:none}
+#notes-overview.panning,#notes-overview.panning *{cursor:grabbing!important}
+.notes-grid{position:absolute;left:0;top:0;display:grid;gap:28px;width:max-content;transform-origin:0 0;will-change:transform}
+.note-tile{display:flex;align-items:stretch;text-align:left;width:220px;height:210px;padding:18px 16px;background:#f4efda;color:#494737;border:1px solid #cbc4a9;border-radius:6px;box-shadow:0 6px 18px #0003;cursor:pointer;transition:opacity 160ms ease}
+.note-tile.not-resident{opacity:.38}.note-tile:focus-visible{outline:2px solid #fff1bb;outline-offset:4px}.note-tile-content{white-space:pre-wrap;overflow:hidden;overflow-wrap:anywhere;font:14px/1.75 'Segoe UI','Microsoft YaHei',sans-serif;flex:1;pointer-events:none}
+body.notes-organizing #canvas{visibility:hidden}body.notes-organizing .workspace,body.notes-organizing .desktop-icons,body.notes-organizing #desktop-window{opacity:.12;pointer-events:none}body.notes-organizing #outline,body.notes-organizing #canvas-tools{visibility:hidden}
+@media(hover:hover) and (pointer:fine){.note-tile.not-resident:hover{opacity:.58}}
+body.notes-full-motion .note-tile{transition:opacity 160ms ease!important}

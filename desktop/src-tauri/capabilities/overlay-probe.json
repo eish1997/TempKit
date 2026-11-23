@@ -1,0 +1,1 @@
+{"identifier":"overlay-probe","windows":["board","probe-panel"],"permissions":["core:event:allow-listen","core:event:allow-unlisten"]}

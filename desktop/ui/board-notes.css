@@ -1,0 +1,35 @@
+/* Loose paper stack rests across the panel edge; the hit area stays invisible. */
+#panel-bottom-tools{position:relative;height:40px;margin-top:8px;overflow:visible}
+#panel-bottom-tools:before{content:"";position:absolute;top:0;left:48px;right:4px;height:1px;background:var(--text);opacity:.06}
+#panel-bottom-tools #notes-entry{position:absolute;left:-17px;bottom:-9px;width:64px;height:52px;overflow:visible;border-radius:0;background:transparent;z-index:3}
+#notes-entry:hover,#notes-entry[aria-expanded=true]{background:transparent}
+#notes-entry:focus-visible{outline:0}
+#notes-entry:focus-visible .note-stack-icon{filter:drop-shadow(0 0 3px #fff2bc)}
+.note-stack-icon{position:relative;display:block;width:54px;height:44px;flex-shrink:0;pointer-events:none;filter:drop-shadow(0 3px 3px #0004)}
+.note-stack-icon i{position:absolute;display:block;width:33px;height:35px;border-radius:2px;transform-origin:50% 50%}
+.note-stack-icon i:nth-child(1){left:8px;top:4px;transform:rotate(-7deg);background:linear-gradient(145deg,#c8b580,#ad9865);box-shadow:0 3px 5px #0003,inset 0 0 0 1px #e9d9ac55}
+.note-stack-icon i:nth-child(2){left:14px;top:4px;transform:rotate(4deg);background:linear-gradient(145deg,#fff0c8,#ebd8a8);box-shadow:-3px 2px 5px #57401f55,0 2px 3px #0002,inset 0 0 0 1px #fff5}
+#notes-entry:hover .note-stack-icon,#notes-entry[aria-expanded=true] .note-stack-icon{filter:brightness(1.07) drop-shadow(0 4px 4px #0004)}
+
+
+
+/* Front sheet comes forward; ink is revealed left to right, one line at a time. */
+.note-stack-icon .note-front{transition:transform 220ms var(--ease);isolation:isolate}
+.note-front:after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:-4px 6px 9px #30250c66;opacity:0;z-index:-1;transition:opacity 220ms var(--ease)}
+#notes-entry .note-writing{position:absolute;inset:0;width:33px;height:35px;overflow:visible;stroke-width:.8}
+.note-rules{stroke:#9d885c;opacity:.23;stroke-width:.55}
+.note-ink{stroke:#746040;stroke-linecap:round;stroke-linejoin:round}
+.note-ink path{clip-path:inset(0 100% 0 0);opacity:0;transition:clip-path 140ms linear,opacity 100ms ease}
+@media(hover:hover) and (pointer:fine){
+ #notes-entry:hover .note-front{transform:translateY(-3px) rotate(0deg) scale(1.16)}
+ #notes-entry:hover .note-front:after{opacity:1}
+ #notes-entry:hover .note-ink path{clip-path:inset(0 0 0 0);opacity:1;transition:clip-path 220ms linear,opacity 100ms ease}
+ #notes-entry:hover .note-ink path:nth-child(1){transition-delay:100ms}
+ #notes-entry:hover .note-ink path:nth-child(2){transition-delay:300ms}
+ #notes-entry:hover .note-ink path:nth-child(3){transition-delay:500ms}
+}
+@media(prefers-reduced-motion:reduce){
+ .note-stack-icon .note-front,.note-front:after,.note-ink path{transition:none!important}
+ #notes-entry:hover .note-front{transform:rotate(4deg)}
+}
+#panel-bottom-tools{flex-shrink:0}#dock.morphing #panel-bottom-tools{visibility:hidden}#dock[data-edge=left] #panel-bottom-tools #notes-entry{left:-8px}

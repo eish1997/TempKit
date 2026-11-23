@@ -1,0 +1,1 @@
+QuickGen validation fixture: unsupported file, not an image.

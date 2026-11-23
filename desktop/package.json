@@ -1,0 +1,14 @@
+{
+  "name": "quickgen-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build --no-bundle",
+    "info": "tauri info",
+    "test": "cargo test --manifest-path src-tauri/Cargo.toml --release"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.12.4"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "format": "quickgen-compatibility-reference-v1",
+  "importable": false,
+  "purpose": "Reference values for manual local connection setup; no credentials included",
+  "verifiedGatewayVersion": "New API v1.0.0-rc.51",
+  "localGatewayExample": "http://127.0.0.1:3000",
+  "imageEdit": {
+    "endpoint": "/v1/images/edits",
+    "model": "gpt-image-2",
+    "size": "1024x1024",
+    "quality": "low",
+    "n": 1,
+    "response_format": "omit: use service default",
+    "requestBody": "multipart/form-data, image + prompt",
+    "response": "Prefer nonempty b64_json; otherwise validate the returned HTTPS URL"
+  },
+  "queryCancelIdempotency": "Not verified/supported for the selected synchronous workflow",
+  "costRule": "Not included; configure and verify separately within an explicit budget",
+  "compatibilityLimit": "Evidence applies to the tested channel configuration, not all services using this model name"
+}

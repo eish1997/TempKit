@@ -1,0 +1,59 @@
+Windows 10 Computer Use: screenshot timeout after full Codex restart
+
+Observed on 2026-11-11
+Codex package: OpenAI.Codex 26.1027.3384.0
+Windows: Windows 10 Education, build 19045.6456 (previous local verification)
+Computer Use helper SHA256:
+49C7F43DA0C2A9DBCADFB0C993058147018BF7C1D0FDE4360DE11ACE2C98F45D
+Authenticode status: Valid (PowerShell SignatureStatus 0)
+
+GPU enumeration:
+- NVIDIA GeForce RTX 3070 Ti, driver 32.0.15.7680, status OK
+- OrayIddDriver Device, driver 17.50.19.949, status OK
+- Todesk Virtual Display Adapter, driver 16.44.2.509, status OK
+No Intel/AMD integrated GPU was enumerated. Presence of virtual display
+adapters alone does not establish causation; they were not disabled.
+No Computer Use-specific GPU preference was found in HKCU UserGpuPreferences.
+
+Reproduction:
+1. Fully exit and restart Codex, with Windows desktop unlocked.
+2. Launch the existing local Tauri/WebView2 test application.
+3. Discover its native window using cua.listWindows and bind using cua.getApp.
+4. Call getAXStateAndScreenshot.
+
+Actual:
+- Window discovery succeeds.
+- Latest screenshot call fails: FrameArrived timed out: timed out waiting on channel.
+- Latest accessibility tree exposes panes but no actionable entry button.
+- Application startup and native/frontend channel handshake succeed.
+- Earlier attempts exposed full accessibility text but screenshot capture timed out;
+  element clicks failed with coordinate input geometry is unavailable.
+- Earlier independent blank Notepad control also had capture timeout and native
+  input failure, while UIA setValue succeeded. These are historical observations,
+  not a new post-restart Notepad retest.
+
+Expected: native window capture and input work without modifying signed helpers.
+
+Already tried: application restart, fresh window binding, prior REPL reset,
+independent normal-window control. No community binary patch applied.
+The integrated-GPU workaround is not applicable to the currently enumerated GPU set.
+
+Related public reports:
+https://github.com/openai/codex/issues/49680
+https://github.com/openai/codex/issues/51390
+https://github.com/openai/codex/issues/52965
+
+This report is prepared locally only; it has not been submitted.
+It contains no screenshots, full conversation, credentials, or raw private logs.
+
+Further investigation (2026-11-11):
+- Official check_app_update returned installedVersion 26.1027.30824,
+  installedBuildVersion 22943, installedReleaseChannel prod,
+  status restart_required. These updater identifiers differ from the Windows
+  package version above; neither should silently replace the other.
+- This indicates a pending restart, not proof that the capture bug is fixed.
+- Public issue https://github.com/openai/codex/issues/58773 reports the exact
+  same signed helper hash and matching Windows 10 capture failures.
+- Public issue https://github.com/openai/codex/issues/54235 reports that
+  disabling ToDesk Virtual Display Adapter did not resolve the failure.
+- No helper binary or display driver has been modified.

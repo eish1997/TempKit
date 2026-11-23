@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>QuickGen · 图片画板原型</title><link rel="stylesheet" href="board-prototype.css?v=desktop-mode-2"><link rel="stylesheet" href="board-notes.css?v=unified-notice-2"></head>
+<body class="notes-full-motion">
+  <div class="review-bar"><span>QuickGen <span class="slash">/</span> 图片画板</span><span class="review-note"><label><input id="notes-full-motion" type="checkbox" checked>便签完整动效</label>　<label><input id="simulate-failure" type="checkbox">下次首张模拟失败</label>　交互原型 · 不调用模型</span></div>
+  <div id="desktop" aria-label="模拟桌面背景">
+    <div class="desktop-icons"><button data-desktop-app="素材文件夹"><span data-icon="library"></span>素材文件夹</button><button data-desktop-app="便签"><span data-icon="copy"></span>便签</button><button data-desktop-app="场景预览"><span data-icon="monitor"></span>场景预览</button></div>
+    <section id="desktop-window" hidden><header><strong id="desktop-title"></strong><button id="desktop-close" aria-label="关闭模拟桌面窗口" data-icon="x"></button></header><div id="desktop-content"></div></section>
+    <div class="workspace"><div class="workspace-bar"><span>场景工作区</span><span>Perspective</span></div><div class="workspace-image"><img src="../desktop/ui/covers/clay.svg" alt="示意场景"><span class="workspace-axis">X　 Y　 Z</span></div><div class="workspace-footer"><span>Scene_04</span><span>1920 × 1080</span></div></div>
+  </div>
+  <div id="canvas" hidden aria-label="图片画板"><div id="world"></div></div>
+  <div id="canvas-tools" hidden role="toolbar" aria-label="画板操作">
+    <button id="zoom-out" aria-label="缩小画板" data-icon="minus"></button><button id="zoom-value" aria-label="还原到百分之百">100%</button><button id="zoom-in" aria-label="放大画板" data-icon="plus"></button><i></i><button id="fit" aria-label="排列并查看全部图片" data-icon="maximize"></button><button id="canvas-mode" aria-label="切换桌面穿透模式" aria-pressed="false" data-icon="monitor"></button><button id="canvas-close" aria-label="关闭画板" data-icon="x"></button>
+  </div>
+  <section id="dock" aria-label="QuickGen 能力面板">
+    <button id="stack" aria-label="打开图片画板" aria-expanded="false"><span id="stack-pictures"></span></button>
+    <nav id="outline" hidden aria-label="图片大纲，按加入时间从新到旧"><div id="outline-list"></div></nav>
+    <div id="panel">
+      <header><button id="import" aria-label="添加图片" data-icon="image-plus"></button><button id="theme" aria-label="切换浅色主题" data-icon="monitor"></button><span></span><button id="pin" aria-label="常驻面板" aria-pressed="false" data-icon="pin"></button></header>
+      <div id="abilities"></div>
+      <div id="receipt" hidden><img id="receipt-image" alt="模拟任务输入"><div><strong id="receipt-name"></strong><span>已记录模拟触发</span></div><button id="receipt-close" aria-label="关闭模拟记录" data-icon="x"></button></div>
+    </div>
+  </section>
+  <button id="notch" hidden aria-label="展开能力面板" data-icon="panel-top"></button>
+  <div id="notice" role="status" hidden></div>
+  <input id="files" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
+  <script src="icons.js"></script><script src="../desktop/ui/theme-icons.js"></script><script src="board-icons.js"></script><script src="board-prototype.js?v=unified-notice-2"></script>
+<script src="board-notes.js?v=unified-notice-2"></script></body></html>
+
+
+

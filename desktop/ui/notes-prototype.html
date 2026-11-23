@@ -1,0 +1,5 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>便签</title><link rel="stylesheet" href="notes-prototype.css"></head><body>
+<section id="home" hidden><header><div><h1>便签</h1><p>把眼下的事，留在眼前。</p></div><button id="create" class="primary">＋ 新建</button></header><div id="list"></div><footer>交互原型 · 内容仅在本次运行中保留<br><button id="quit">结束原型</button></footer></section>
+<section id="note" hidden><header id="drag"><span class="grip" aria-hidden="true">⠿</span><span class="spacer"></span><button id="pin" aria-label="置顶" aria-pressed="false" title="置顶">置顶</button><button id="hide" aria-label="收起便签" title="收起，可从列表找回">×</button></header><textarea id="text" aria-label="便签内容" placeholder="记点什么…" spellcheck="false"></textarea><div id="status" role="status"></div></section>
+<script src="notes-prototype.js"></script></body></html>

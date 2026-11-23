@@ -1,0 +1,184 @@
+.quote-editor{flex:1;min-height:0;overflow:auto;padding:12px 20px 24px;outline:0;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.85 "Segoe UI","Microsoft YaHei",sans-serif;user-select:text;scrollbar-width:thin}.quote-editor>div{min-height:1.85em}.quote-editor blockquote{margin:16px 0;padding:10px 13px;border-left:3px solid #b4a470;background:#e6dfc555;border-radius:0 4px 4px 0;transition:background 180ms}.quote-editor blockquote.quote-flash{background:#d5be72aa}.desktop-note{overflow:visible}.quote-editor{border-radius:0 0 6px 6px;scrollbar-width:auto;scrollbar-color:auto;margin-right:4px;padding-right:16px;padding-bottom:20px}.quote-editor::-webkit-scrollbar{display:block;width:5px}.quote-editor::-webkit-scrollbar-track{background:transparent;margin:8px 0 12px}.quote-editor::-webkit-scrollbar-thumb{background:#b6a77b66;border-radius:9px}.quote-editor:hover::-webkit-scrollbar-thumb{background:#aa996a99}.quote-editor::-webkit-scrollbar-thumb:hover{background:#9b895b}.quote-editor::-webkit-scrollbar-button{display:none;width:0;height:0}.quote-cards{position:absolute;left:-25px;top:46px;bottom:18px;width:24px;display:flex;flex-direction:column;gap:5px;padding:4px 0;overflow-x:hidden;overflow-y:auto;scrollbar-width:none;pointer-events:none}.quote-card{position:relative;flex:0 0 23px;width:24px;height:23px;padding:3px!important;border:1px solid #81734b20;border-right:0;border-radius:5px 0 0 5px;background:var(--tab-color)!important;box-shadow:-2px 2px 4px #00000013,inset -5px 0 6px #7b663c18;color:#6e6348;cursor:grab;pointer-events:auto;transform:none;transition:transform 150ms ease,filter 150ms ease}.quote-card svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}.quote-card:hover,.quote-card.active{transform:none;filter:brightness(1.06)}.quote-card:focus-visible{outline:2px solid #817047;outline-offset:-3px}.quote-card.dragging{opacity:.6;cursor:grabbing}.quote-create{position:absolute;right:12px;top:39px;background:#4d4938!important;color:#fff7df!important;padding:7px 12px;border-radius:5px;box-shadow:0 3px 10px #0002;font-size:11px}.quote-drop-demo{position:fixed;left:540px;top:190px;width:270px;border:1px solid #ffffff18;border-radius:8px;background:#292d2bd9;box-shadow:0 12px 40px #0002;z-index:29;padding:16px}.quote-drop-demo header{font-size:11px;color:#a5aaa2;margin-bottom:12px}.quote-drop-demo textarea{width:100%;height:155px;background:#202421;border:1px solid #ffffff12;border-radius:5px;padding:12px;color:#e3e5db;font:13px/1.8 "Microsoft YaHei",sans-serif;resize:vertical;outline:0}.quote-drop-demo.drop-ready{border-color:#e8dab0}.notes-organizing .quote-drop-demo{visibility:hidden}@media(max-width:1000px){.quote-drop-demo{left:520px;width:210px}}
+.quote-card{opacity:.56}.quote-card:hover{opacity:.85}.quote-card.active{opacity:1;box-shadow:-2px 2px 5px #0002,inset -3px 0 0 #7b663c35} .quote-card{font:11px/16px "Microsoft YaHei",sans-serif;text-align:center}.quote-connector{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:2}.quote-connector path{fill:none;stroke:#aa9560;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+
+.quote-connector{opacity:0;transition:opacity 160ms ease}.quote-connector path{stroke-width:1}.quote-editor blockquote.quote-flash{background:#e6dfc599}
+
+/* Small paper flags: stable variations, with space between loose clusters. */
+.quote-cards{left:-43px;width:42px;top:42px;padding:8px 0 10px 7px;gap:0;align-items:flex-end;isolation:isolate}
+.quote-card{--tilt:-4deg;--paper-width:27px;--space:3px;--paper-texture:linear-gradient(110deg,#fff3,transparent 65%);flex:0 0 25px;width:var(--paper-width);height:25px;margin-top:var(--space);padding:4px 6px 4px 3px!important;border:0;border-radius:2px 1px 1px 3px;background:var(--paper-texture),var(--tab-color)!important;box-shadow:-1px 2px 3px #30281324,inset -4px 0 5px #66532c13;color:#625b43;opacity:.83;transform:rotate(var(--tilt));transform-origin:right center;transition:filter 150ms ease,opacity 150ms ease;z-index:1;font-size:11px}
+.quote-card:after{content:"";position:absolute;left:0;bottom:0;width:5px;height:4px;background:linear-gradient(35deg,#fff5,transparent 70%);border-radius:0 3px 0 2px;pointer-events:none}
+.quote-card:hover,.quote-card.active{transform:rotate(var(--tilt));opacity:1;filter:brightness(1.06);box-shadow:-2px 3px 5px #30281332,inset -3px 0 5px #66532c10;z-index:3}
+.quote-card.dragging{opacity:.55}
+
+/* Tuck the rotated paper ends beneath the straight edge of the note. */
+.quote-card{width:calc(var(--paper-width) + 6px);margin-right:-6px;padding-right:12px!important;transform-origin:calc(100% - 6px) center}
+.desktop-note::before{content:"";position:absolute;left:-5px;top:42px;bottom:18px;width:5px;background:linear-gradient(90deg,transparent,#30281326);pointer-events:none;z-index:4}
+
+.quote-toolbar{display:flex;align-items:center;gap:9px;flex:0 0 38px;padding:2px 16px 7px;border-radius:0 0 6px 6px;background:#f4efda}
+.quote-toolbar button{display:grid;place-items:center;width:28px;height:28px;padding:4px;border:0;border-radius:4px;background:transparent;color:#928a70;font:17px Georgia,serif;cursor:pointer}
+.quote-toolbar button:hover{background:#b7a66a18;color:#574f37}.quote-toolbar button[aria-pressed=true]{background:#c8b77630;color:#574a27}
+.quote-toolbar svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.quote-toolbar button:last-child{margin-left:auto}.quote-editor{border-radius:0;padding-bottom:16px}.quote-cards{bottom:46px}.desktop-note::before{bottom:46px}
+.quote-editor .quote-todo{position:relative;padding-left:25px}.quote-todo::before{content:"";position:absolute;left:1px;top:7px;width:13px;height:13px;border:1px solid #a89d77;border-radius:3px;cursor:pointer}.quote-todo[data-done=true]{text-decoration:line-through;color:#a29a80}.quote-todo[data-done=true]::before{content:"✓";font:12px/13px sans-serif;text-align:center;background:#d8cfac}
+
+.quote-editor hr{display:block;border:0;border-top:1px solid #b7a77c66;margin:18px 0;height:0;clear:both}
+.quote-toolbar{gap:7px;padding-left:12px;padding-right:12px}
+
+.quote-editor .quote-tag{display:inline;padding:2px 6px;margin:0 2px;border-radius:5px;background:#d8cba970;color:#75603b;box-decoration-break:clone;-webkit-box-decoration-break:clone;font-size:.92em;white-space:nowrap;cursor:default}.quote-toolbar{gap:3px;padding-left:10px;padding-right:10px}
+
+:where(.quote-tag,.quote-tag-palette button){--tag-bg:#d8cba970;--tag-ink:#75603b}
+[data-status=pending]{--tag-bg:#d9d7cf;--tag-ink:#68675f}
+[data-status=active]{--tag-bg:#d4e2eb;--tag-ink:#416880}
+[data-status=rework]{--tag-bg:#eed5b6;--tag-ink:#94612d}
+[data-status=done]{--tag-bg:#d6e2cb;--tag-ink:#537247}
+[data-status=paused]{--tag-bg:#e0d8e6;--tag-ink:#796187}
+.quote-editor .quote-tag{background:var(--tag-bg);color:var(--tag-ink);cursor:pointer}
+.quote-tag-palette{position:fixed;inset:auto;margin:0;padding:4px;border:1px solid #d8cfb5;border-radius:7px;background:#faf6e8;box-shadow:0 5px 18px #30291426;color:#70674e}
+.quote-tag-palette:popover-open{display:flex;gap:2px}
+.quote-tag-palette button{display:grid;place-items:center;width:24px;height:24px;padding:0;border:0;border-radius:4px;background:none;color:#70674e;font:11px sans-serif;cursor:pointer}
+.quote-tag-palette button:hover,.quote-tag-palette button[aria-pressed=true]{background:transparent}
+.quote-tag-palette button:focus-visible{outline:none}
+.quote-tag-palette button:hover i,.quote-tag-palette button:focus-visible i{outline:1px solid var(--tag-ink);outline-offset:2px}
+.quote-tag-palette i{display:block;width:14px;height:14px;border-radius:50%;background:var(--tag-bg);border:1px solid #73675020}
+.quote-tag-palette button[aria-pressed=true] i{outline:1px solid var(--tag-ink);outline-offset:2px}
+
+:is(.desktop-note,.note-tile){--note-paper:#f4efda;--note-ink:#494737;--note-accent:#a89d77;background:var(--note-paper);color:var(--note-ink)}
+:is(.desktop-note,.note-tile)[data-theme=pending]{--note-paper:#eae9e3;--note-ink:#4c4c46;--note-accent:#a09f95}
+:is(.desktop-note,.note-tile)[data-theme=active]{--note-paper:#e3edf3;--note-ink:#3d5260;--note-accent:#8ba7b8}
+:is(.desktop-note,.note-tile)[data-theme=rework]{--note-paper:#f5e7d6;--note-ink:#64503a;--note-accent:#bea17c}
+:is(.desktop-note,.note-tile)[data-theme=done]{--note-paper:#e6eedd;--note-ink:#48563e;--note-accent:#9caf8b}
+:is(.desktop-note,.note-tile)[data-theme=paused]{--note-paper:#ede5f0;--note-ink:#5c4c65;--note-accent:#ae99b8}
+.desktop-note .quote-toolbar{background:var(--note-paper)}
+.desktop-note[data-theme]:not([data-theme=""]){border-color:var(--note-accent)}
+.desktop-note[data-theme]:not([data-theme=""]) .quote-editor blockquote{background:color-mix(in srgb,var(--note-accent) 12%,transparent)}
+.desktop-note .note-theme-button{display:grid;place-items:center;background:transparent}
+.note-theme-button i{display:block;width:12px;height:12px;border:1px solid var(--note-accent);border-radius:50%;background:var(--note-paper);box-shadow:inset 0 0 0 2px #ffffff55}
+.desktop-note .note-theme-button:hover{background:transparent}.note-theme-button:hover i{outline:1px solid var(--note-accent);outline-offset:2px}
+
+.note-tile{border-color:var(--note-accent)}
+.desktop-note .note-menu{background:var(--note-paper);border-color:var(--note-accent)}
+.desktop-note .quote-tag-palette{background:var(--note-paper);border-color:var(--note-accent)}
+
+/* Shared note controls: one stroke weight, theme-aware ink, spacing instead of dividers. */
+.desktop-note{--note-control:color-mix(in srgb,var(--note-ink) 68%,var(--note-paper));--note-hover:color-mix(in srgb,var(--note-accent) 18%,transparent)}
+.desktop-note header{gap:2px;padding:5px 8px}
+.desktop-note header button,.desktop-note .quote-toolbar button{display:grid;place-items:center;width:26px;height:26px;padding:4px;color:var(--note-control);border-radius:4px;background:transparent}
+.desktop-note header svg,.desktop-note .quote-toolbar svg{display:block;width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round}
+.desktop-note header .note-grip{display:flex;align-items:center;padding-left:0;color:var(--note-control);opacity:.55}
+.desktop-note header .note-close{margin-left:6px}
+.desktop-note header button:hover,.desktop-note .quote-toolbar button:hover{background:var(--note-hover);color:var(--note-ink)}
+.desktop-note header button[aria-pressed=true],.desktop-note .quote-toolbar button[aria-pressed=true]{background:var(--note-hover);color:var(--note-ink)}
+.desktop-note .quote-toolbar{gap:2px;padding-left:10px;padding-right:10px}
+.quote-toolbar button[data-tool=todo]{position:relative;margin-left:11px}
+.quote-toolbar button[data-tool=todo]::before{content:"";position:absolute;left:-7px;top:6px;width:1px;height:14px;background:color-mix(in srgb,var(--note-control) 22%,transparent);pointer-events:none}
+.desktop-note header .note-theme-button i{width:13px;height:13px;border-width:1.2px;border-color:var(--note-control);box-shadow:none}
+
+/* Boundary admission is per paper flag; never expose a sliced flag. */
+.quote-cards{padding-top:10px;padding-bottom:10px}
+.quote-cards .quote-card{visibility:hidden;opacity:0;scale:.96;pointer-events:none;transition:opacity 125ms cubic-bezier(.23,1,.32,1),scale 125ms cubic-bezier(.23,1,.32,1)}
+.quote-cards .quote-card.rail-visible{visibility:visible;opacity:.83;scale:1;pointer-events:auto}
+.quote-cards .quote-card.rail-visible.active{opacity:1}
+@media(hover:hover) and (pointer:fine){.quote-cards .quote-card.rail-visible:hover{opacity:1}}
+@media(prefers-reduced-motion:reduce){.quote-cards .quote-card{scale:1;transition:opacity 125ms ease}}
+
+/* Warm cotton paper: stationary grain underneath readable text. */
+:is(.desktop-note,.note-tile)[data-theme=paper]{--note-paper:#f3eddf;--note-ink:#514b40;--note-accent:#b5a68d;background-image:url("note-paper-texture.svg"),linear-gradient(115deg,#ffffff45,transparent 42%,#a88b5b0b);background-size:240px 240px,100% 100%;border-color:#b8ab94;box-shadow:inset 0 1px 0 #fff9,inset 0 -1px 0 #99866a24,0 2px 3px #20190d18,0 12px 28px #20190d29}
+.desktop-note[data-theme=paper] .quote-toolbar{background:transparent}
+.desktop-note[data-theme=paper] :is(.note-menu,.quote-tag-palette){background-color:var(--note-paper);background-image:url("note-paper-texture.svg")}
+.quote-tag-palette button[data-status=paper]{--tag-bg:#f3eddf;--tag-ink:#75644c;margin-left:4px}
+.quote-tag-palette button[data-status=paper] i,.desktop-note[data-theme=paper] .note-theme-button i{background-color:#f3eddf;background-image:url("note-paper-texture.svg");border-radius:3px}
+.quote-tag-palette button[hidden]{display:none}
+
+/* Scanned-style xuan fibres and absorbed dry ink, scoped to the letter theme. */
+:is(.desktop-note,.note-tile)[data-theme=paper]{--note-paper:#e9ddba;--note-ink:#393025;--note-accent:#a18b62;background-image:url("note-xuan-paper.png");background-size:100% 100%;background-repeat:no-repeat;border-radius:3px 4px 2px 3px;border-color:#aa987466;box-shadow:inset 0 0 15px #8b69391a,0 1px 2px #241a1033,0 14px 30px #21190f36}
+.desktop-note[data-theme=paper] .quote-editor{font-family:"KaiTi","STKaiti","FangSong",serif;font-size:17px;line-height:1.95;letter-spacing:.025em;color:var(--note-ink);filter:url(#paper-dry-ink);text-shadow:0 .25px .45px #48341b35}
+.desktop-note[data-theme=paper] .quote-editor blockquote{background:#a88b4910;border-left-color:#9d805b88}
+.desktop-note[data-theme=paper] .quote-tag{background-color:color-mix(in srgb,var(--tag-bg,#c5b58a) 65%,transparent)}
+.desktop-note[data-theme=paper] :is(.note-menu,.quote-tag-palette){background-image:url("note-xuan-paper.png");background-size:cover}
+.quote-tag-palette button[data-status=paper] i,.desktop-note[data-theme=paper] .note-theme-button i{background-image:url("note-xuan-paper.png");background-size:cover}
+.note-tile[data-theme=paper]{font-family:"KaiTi","STKaiti","FangSong",serif}
+
+/* Small, orderly brush-script letter face; bundled locally, not a system-font approximation. */
+@font-face{font-family:"Note Huiwen";src:url("fonts/HuiwenZhengKai.ttf") format("truetype");font-weight:400;font-style:normal;font-display:swap}
+.desktop-note[data-theme=paper] .quote-editor{font-family:"Note Huiwen","KaiTi",serif;font-size:17px;font-weight:400;line-height:1.65;letter-spacing:.045em;text-shadow:none;color:#3e3429}
+.desktop-note[data-theme=paper] .quote-editor .quote-tag{font-family:inherit;font-size:inherit;line-height:inherit}
+.note-tile[data-theme=paper]{font-family:"Note Huiwen","KaiTi",serif}
+
+.desktop-note[data-theme=paper] .quote-editor>div{min-height:1.65em}
+
+/* Letter-paper rules: quiet ink strokes with tapered ends, no filled quote card. */
+.desktop-note[data-theme=paper] .quote-editor hr{border:0;height:8px;margin:14px 0;background:url("note-ink-rule.svg") center/100% 8px no-repeat;opacity:.85}
+.desktop-note[data-theme=paper]:not([data-theme=""]) .quote-editor blockquote{position:relative;margin:14px 0;padding:3px 0 3px 15px;border:0;border-radius:0;background:transparent}
+.desktop-note[data-theme=paper] .quote-editor blockquote::before{content:"";position:absolute;left:1px;top:3px;bottom:3px;width:2px;background:linear-gradient(180deg,#55453610,#55453670 12%,#55453699 37%,#55453655 73%,#55453610);clip-path:polygon(35% 0,70% 4%,85% 28%,65% 52%,95% 78%,45% 100%,20% 94%,32% 65%,10% 39%,25% 12%);pointer-events:none}
+.desktop-note[data-theme=paper] .quote-editor blockquote.quote-flash{background:#9d754315}
+.desktop-note[data-theme=paper] .quote-editor blockquote.quote-flash::before{background:#705237}
+
+/* Paper-theme annotations: pasted slips, translucent pigment, and pen-drawn checks. */
+.desktop-note[data-theme=paper] .quote-card{font-family:"Note Huiwen","KaiTi",serif;font-size:12px;color:#514333;border-radius:1px 0 0 2px;background-image:linear-gradient(90deg,#fff2,transparent 62%,#4a331f25),url("note-xuan-paper.png")!important;background-color:var(--tab-color)!important;background-size:100% 100%,145px 220px!important;background-blend-mode:multiply,luminosity;box-shadow:-1px 2px 2px #24180d24,inset -5px 0 4px #49351d24}
+.desktop-note[data-theme=paper] .quote-card::after{background:linear-gradient(35deg,#fff4,transparent 70%);opacity:.45}
+.desktop-note[data-theme=paper] .quote-card.active{color:#392c20;box-shadow:-1px 2px 3px #24180d30,inset -5px 0 5px #49351d2e;filter:brightness(1.05)}
+.desktop-note[data-theme=paper] .quote-editor :is(mark,[style*="background-color: rgb(234, 213, 132)"],[style*="background-color: #ead584"]):not(.quote-tag){background-image:linear-gradient(175deg,#f3e8c77d 0 13%,#f3e8c730 27% 73%,#f3e8c79d 92%),url("note-paper-texture.svg");border-radius:2px 5px 2px 4px;box-decoration-break:clone;-webkit-box-decoration-break:clone;box-shadow:1px 0 0 #b49a3930,-1px 1px 0 #b49a3920}
+.desktop-note[data-theme=paper] .quote-editor .quote-tag{padding:1px 4px;margin:0 2px;border-radius:2px 4px 1px 3px;background:linear-gradient(176deg,transparent 3%,color-mix(in srgb,var(--tag-ink) 19%,transparent) 17% 78%,color-mix(in srgb,var(--tag-ink) 9%,transparent) 94%,transparent),url("note-paper-texture.svg");color:color-mix(in srgb,var(--tag-ink) 72%,#3e3429);box-shadow:none}
+.desktop-note[data-theme=paper] .quote-editor .quote-tag:hover{outline:1px solid color-mix(in srgb,var(--tag-ink) 25%,transparent);outline-offset:1px}
+.desktop-note[data-theme=paper] .quote-todo{padding-left:23px}
+.desktop-note[data-theme=paper] .quote-todo::before{top:.44em;left:2px;width:12px;height:12px;border:1px solid #69553b99;border-radius:1px 2px 1px 2px;transform:rotate(-3deg);background:transparent;box-shadow:.3px .2px 0 #69553b22}
+.desktop-note[data-theme=paper] .quote-todo[data-done=true]{color:#766a54;text-decoration-color:#69553b50;text-decoration-thickness:1px}
+.desktop-note[data-theme=paper] .quote-todo[data-done=true]::before{content:"";background:transparent;border-color:#69553b55}
+.desktop-note[data-theme=paper] .quote-todo[data-done=true]::after{content:"";position:absolute;pointer-events:none;left:4px;top:.28em;width:12px;height:17px;background:#59452e;clip-path:polygon(0 44%,16% 39%,37% 67%,91% 0,100% 3%,40% 95%,30% 100%);transform:rotate(9deg);opacity:.83}
+
+/* Complete a paper to-do by striking through every wrapped line with ink. */
+.desktop-note[data-theme=paper] .quote-todo[data-done=true]{text-decoration:none;color:#786b57}
+.desktop-note[data-theme=paper] .quote-todo[data-done=true]::before{content:"";border-color:transparent;background:none;box-shadow:none;transform:none}
+.desktop-note[data-theme=paper] .quote-todo[data-done=true]::after{content:"";inset:0 0 0 1px;width:auto;height:auto;clip-path:none;transform:none;opacity:1;background:url("note-ink-strike.svg") left top/100% 1.65em repeat-y;pointer-events:none}
+.desktop-note[data-theme=paper] .quote-todo[data-done=true]:hover::before{border-color:#69553b33}
+
+/* A whole quote can also be a to-do: align its control to the padded first line. */
+.quote-editor blockquote.quote-todo{padding-left:34px}
+.quote-editor blockquote.quote-todo::before{left:11px;top:calc(10px + .925em - 6.5px)}
+.desktop-note[data-theme=paper]:not([data-theme=""]) .quote-editor blockquote.quote-todo{padding-left:36px;border-left:1px solid #69553b60}
+.desktop-note[data-theme=paper] .quote-editor blockquote.quote-todo::before{left:13px;top:calc(3px + .825em - 6px);bottom:auto;width:12px;height:12px;clip-path:none;background:transparent}
+.desktop-note[data-theme=paper] .quote-editor blockquote.quote-todo[data-done=true]::after{inset:3px 0 3px 13px}
+
+#abilities .ability{height:var(--card-height,80px)}
+#height{cursor:ns-resize;touch-action:none}
+#ability-manager{position:fixed;z-index:65;display:flex;flex-direction:column;width:308px;max-height:min(344px,calc(100vh - 16px));padding:10px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);font:11px/1.4 "Segoe UI",sans-serif}
+#ability-manager[hidden]{display:none}
+#ability-manager header{display:flex;align-items:center;justify-content:space-between;height:22px;margin:0 0 8px;cursor:default}
+#ability-manager header strong{font-size:12px;font-weight:600}
+#ability-manager header button{width:22px;height:22px;color:var(--muted)}
+#ability-manager-body{min-height:0;overflow:auto}
+#ability-manager form{margin:0}
+#ability-manager label{display:grid;gap:4px;margin:0 0 8px}
+#ability-manager input,#ability-manager textarea{width:100%;min-width:0;padding:6px;color:inherit;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);outline-offset:2px}
+#ability-manager textarea{height:76px;min-height:76px;max-height:140px;resize:vertical}
+#ability-manager input[type=file]{font-size:10px}
+#ability-cover-note{min-height:1.2em;margin:0;color:#d36b6b;font-size:10px}
+#ability-cover-note:empty{display:none}
+#ability-manager .ability-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
+#ability-manager .ability-actions button,#ability-manager .ability-row button{width:auto;height:auto;gap:4px;padding:4px 8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)}
+#ability-manager .ability-actions button[type=submit]{background:var(--text);color:var(--bg);border-color:var(--text)}
+#ability-manager .ability-row{display:flex;gap:6px;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)}
+#ability-manager .ability-row:last-child{border-bottom:0}
+#ability-manager .ability-row>div{min-width:0}
+#ability-manager .ability-row strong{font-size:11px;font-weight:600}
+#ability-manager .ability-row p{margin:4px 0 0;color:var(--muted);font-size:10px}
+#ability-manager .ability-row button{flex-shrink:0;min-width:66px}
+#ability-manager button:disabled{color:var(--muted);background:transparent;cursor:default}
+
+/* The note covers the pencil; only the tip sticks out on the right. */
+#panel-bottom-tools #notes-entry{width:50px}
+#screen-pen{position:absolute;z-index:1;left:20px;bottom:10px;width:30px;height:16px;overflow:visible;border-radius:2px;background:transparent}
+#screen-pen:hover,#screen-pen[aria-pressed=true]{background:transparent}
+#screen-pen:focus-visible{outline:0}
+#screen-pen .screen-pen-icon{display:block;width:30px;height:16px;filter:drop-shadow(0 1px 1px #0008);transition:transform 180ms var(--ease)}
+#screen-pen svg{width:30px;height:16px;stroke:none;overflow:visible}
+#screen-ink{position:fixed;inset:0;z-index:72;width:100%;height:100%;overflow:visible;pointer-events:none}
+#screen-ink path{fill:none;stroke:#e23d2b;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+@media(hover:hover) and (pointer:fine){
+ #screen-pen:hover .screen-pen-icon{transform:translate(2px,-1px)}
+}
+#screen-pen[aria-pressed=true] .screen-pen-icon{transform:translate(3px,-1px)}
+body.screen-drawing,body.screen-drawing *{cursor:crosshair!important;user-select:none}
+body.screen-drawing #screen-pen,body.screen-drawing #screen-pen *{cursor:pointer!important}
+@media(prefers-reduced-motion:reduce){#screen-pen .screen-pen-icon{transition:none!important}}
+body.notes-full-motion #screen-pen .screen-pen-icon{transition:transform 220ms var(--ease),filter 220ms var(--ease)!important}

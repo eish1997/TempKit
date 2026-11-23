@@ -1,0 +1,1 @@
+{"identifier": "main", "windows": ["main", "manager", "note-*"], "permissions": ["core:event:allow-listen", "core:event:allow-unlisten"]}
