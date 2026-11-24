@@ -14,7 +14,7 @@ let desktopPeekIds=new Set();
 let storageReady=false,storageError=null,saveTimer;
 let durable=false,lastLocalScene=null,saveChain=Promise.resolve(),taskSyncBusy=false;
 let renderedImageWork='null';
-let noteBarrier=false;let quitting=false;const pendingBoardWork=new Set();
+let noteBarrier=false;let quitting=false;let inkTools=null;const pendingBoardWork=new Set();
 function trackBoardWork(work){pendingBoardWork.add(work);work.finally(()=>pendingBoardWork.delete(work)).catch(()=>{});return work;}
 const sceneClient=new quickgenDurable.SceneClient(invoke),taskMirror=new quickgenDurable.TaskMirror(invoke),resourceImages=new Map(),placedTaskOutputs=new Set();
 async function imageSource(id){if(resourceImages.has(id))return resourceImages.get(id);const {data}=await invoke('resource_read',{id});resourceImages.set(id,data);return data;}
@@ -92,8 +92,17 @@ let panelLayout,panelMotion,externalDragging=false,blurTimer;
 const dropGate=quickgenBoardMotion.createGate();
 let nativeTimer,nativeBusy=false,nativeDirty=false,managerOpening=false;
 const cards=new Map();
-function renderCards(abilities){cards.clear();$('abilities').replaceChildren();for(const ability of abilities){const card=document.createElement('div'),img=document.createElement('img'),label=document.createElement('span');card.className='ability';card.dataset.preset=ability.id;card.setAttribute('aria-label',ability.name+'：拖入图片执行');img.src=ability.cover||src(presets.some(p=>p[0]===ability.id)?ability.id:'clay');img.alt='';label.textContent=ability.name;card.append(img,label);$('abilities').append(card);cards.set(ability.id,{el:card,name:ability.name,prompt:ability.prompt})}}
+function renderCards(abilities){cards.clear();$('abilities').replaceChildren();for(const ability of abilities){const card=document.createElement('div'),img=document.createElement('img'),label=document.createElement('span');card.className='ability';card.dataset.preset=ability.id;card.setAttribute('aria-label',ability.name+'：拖入图片执行');img.src=ability.cover||src(presets.some(p=>p[0]===ability.id)?ability.id:'clay');img.alt='';label.textContent=ability.name;card.append(img,label);card.tabIndex=0;
+ const modelMenu=()=>{if(card.querySelector('.preset-model-menu'))return;const action=document.createElement('button');action.className='preset-model-menu';action.textContent='模型设置';action.onpointerdown=e=>{e.preventDefault();e.stopPropagation();};action.onclick=e=>{e.stopPropagation();action.remove();card.focus();manager('binding',ability.id);};action.onkeydown=e=>{if(e.key==='Escape'){e.stopPropagation();action.remove();card.focus();}};card.append(action);action.focus();};
+ card.oncontextmenu=e=>{e.preventDefault();e.stopPropagation();modelMenu();};card.onkeydown=e=>{if(e.key==='ContextMenu'||(e.shiftKey&&e.key==='F10')){e.preventDefault();modelMenu();}};
+ $('abilities').append(card);cards.set(ability.id,{el:card,name:ability.name,prompt:ability.prompt})}}
 renderCards(initialConfig.abilities);
+// Native focus may transition during mouse activation, before click. Dismiss
+// explicitly outside the action instead of deleting its click target on blur.
+document.addEventListener('pointerdown',event=>{
+ if(event.target.closest('.preset-model-menu'))return;
+ document.querySelectorAll('.preset-model-menu').forEach(menu=>menu.remove());
+},true);
 
 const hints=new quickgenHints.Hints(renderHint);
 $('panel-hint').append($('receipt'));
@@ -108,12 +117,11 @@ function renderHint(row){
  syncNativeSoon();
 }
 function positionHint(){
- const el=$('panel-hint');el.style.visibility=$('dock').hidden||panelMotion?.active?'hidden':'visible';if(el.hidden){panelLayout?.setBottomInset(0);return;}
- let panel=$('panel').getBoundingClientRect();
- el.style.width=Math.min(panel.width,innerWidth)+'px';
- panelLayout?.setBottomInset(el.offsetHeight+6);panel=$('panel').getBoundingClientRect();
- el.style.left=Math.max(0,Math.min(panel.left,innerWidth-el.offsetWidth))+'px';
- el.style.top=Math.max(0,Math.min(panel.bottom+6,innerHeight-el.offsetHeight))+'px';
+ const el=$('panel-hint'),tools=$('ink-tools'),visibility=$('dock').hidden||panelMotion?.active?'hidden':'visible';el.style.visibility=visibility;tools.style.visibility=visibility;
+ let panel=$('panel').getBoundingClientRect();el.style.width=Math.min(panel.width,innerWidth)+'px';tools.style.width=Math.min(Math.max(panel.width,252),innerWidth)+'px';const toolHeight=tools.hidden?0:tools.offsetHeight+6;
+ panelLayout?.setBottomInset(toolHeight+(el.hidden?0:el.offsetHeight+6));panel=$('panel').getBoundingClientRect();
+ tools.style.left=Math.max(0,Math.min(panel.left,innerWidth-tools.offsetWidth))+'px';tools.style.top=Math.max(0,Math.min(panel.bottom+6,innerHeight-tools.offsetHeight))+'px';
+ el.style.left=Math.max(0,Math.min(panel.left,innerWidth-el.offsetWidth))+'px';el.style.top=Math.max(0,Math.min(panel.bottom+toolHeight+6,innerHeight-el.offsetHeight))+'px';
 }
 function offerUndo(note){
  const restore=()=>{
@@ -253,7 +261,7 @@ $('canvas').onpointerdown=e=>{
  document.addEventListener('keyup',e=>{if(e.code==='Space'){spaceHeld=false;$('canvas').classList.remove('pan-ready')}});
  window.addEventListener('blur',()=>{spaceHeld=false;$('canvas').classList.remove('pan-ready');cancelGesture()});
 $('canvas').addEventListener('wheel',e=>{e.preventDefault();if(gesture)return;zoom(scale*Math.exp(-e.deltaY*.0015),e.clientX,e.clientY)},{passive:false});
-$('stack').onclick=()=>{if(notesMode.active)return;if(suppressStackClick){suppressStackClick=false;return}open?hideCanvas():showCanvas()};$('canvas-close').onclick=hideCanvas;$('zoom-in').onclick=()=>zoom(scale*1.2);$('zoom-out').onclick=()=>zoom(scale/1.2);$('zoom-value').onclick=()=>zoom(1);$('fit').onclick=arrange;
+$('stack').onclick=()=>{if(inkTools?.active){trackBoardWork(switchInk(false).then(()=>{if(!inkTools.active)showCanvas()})).catch(()=>{});return;}if(notesMode.active)return;if(suppressStackClick){suppressStackClick=false;return}open?hideCanvas():showCanvas()};$('canvas-close').onclick=hideCanvas;$('zoom-in').onclick=()=>zoom(scale*1.2);$('zoom-out').onclick=()=>zoom(scale/1.2);$('zoom-value').onclick=()=>zoom(1);$('fit').onclick=arrange;
 $('pin').onclick=()=>{pinned=!pinned;$('pin').setAttribute('aria-pressed',String(pinned));$('pin').setAttribute('aria-label',pinned?'取消常驻面板':'常驻面板');if(passthrough)setPassThrough(true)};$('notch').onclick=()=>{restorePanel();if(passthrough)setPassThrough(false)};
 $('theme').onclick=async()=>{const next=document.body.classList.contains('light')?'dark':'light';try{await invoke('save_config',{section:'theme',value:next});applyTheme(next)}catch(e){notice(String(e))}};
 $('desktop').onpointerdown=()=>{if(!pinned&&!open)collapse()};
@@ -274,15 +282,27 @@ const notesMode=quickgenNotesOverview.createMode({
 async function refreshNotesOverview(){const sequence=++overviewRefresh;if(!notesMode.active)return;const notes=await invoke('notes_list');if(sequence===overviewRefresh&&notesMode.active)overviewView.render(notes.filter(n=>!n.deleted));}
 async function switchNotes(value){
  if(noteBarrier||quitting)return;
+ if(value&&inkTools?.active){await switchInk(false);if(inkTools.active)return;}
  noteBarrier=true;cancelGesture();
  try{await Promise.allSettled([...noteMutations]);await notesMode.set(value);hints.clear('notes-mode-error');}
  catch(error){hints.set('notes-mode-error',{priority:40,text:'便签切换未完成：'+error,actionText:'重试',action:()=>trackBoardWork(switchNotes(value))});}
  finally{noteBarrier=false;}
 }
+async function switchInk(value){
+ if(quitting||noteBarrier)return;
+ try{if(value&&notesMode.active){await switchNotes(false);if(notesMode.active)return;}if(value){await syncNative();}await inkTools.set(value);hints.clear('ink-mode-error');}
+ catch(error){hints.set('ink-mode-error',{priority:40,text:'画笔切换未完成：'+error,actionText:'重新打开',action:()=>trackBoardWork(switchInk(true))});throw error;}
+}
+async function clearInk(){if(quitting||noteBarrier)return;try{await inkTools.clear();hints.clear('ink-clear-error');}catch(error){hints.set('ink-clear-error',{priority:40,text:'画笔清空未确认：'+error,actionText:'重试清空',action:()=>trackBoardWork(clearInk())});}}
+inkTools=quickgenInkTools.mount({onClear:()=>trackBoardWork(clearInk()),entry:$('ink-entry'),row:$('ink-tools'),invoke,onToggle:value=>trackBoardWork(switchInk(value)).catch(()=>{}),onChange:syncNativeSoon,onSaved:()=>hints.clear('ink-style-error'),onError:error=>hints.set('ink-style-error',{priority:40,text:'画笔设置未保存：'+error,dismissible:true})});
+const inkChannel=new window.__TAURI__.core.Channel();inkChannel.onmessage=data=>inkTools.consume(data);await invoke('ink_subscribe',{channel:inkChannel});
+await window.__TAURI__.event.listen('ink-error',e=>{const key='ink-error:'+e.payload.id;if(e.payload.error)hints.set(key,{priority:40,text:'画笔更改未确认：'+e.payload.error,actionText:'打开画笔',action:()=>trackBoardWork(switchInk(true)).catch(()=>{})});else hints.clear(key);},{target:{kind:'WebviewWindow',label:'main'}});
+await inkTools.load();
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&inkTools.active){e.preventDefault();e.stopImmediatePropagation();trackBoardWork(switchInk(false)).catch(()=>{});}},true);
 $('notes-entry').oncontextmenu=e=>{e.preventDefault();if(quitting||noteBarrier)return;trackBoardWork((async()=>{try{if(notesMode.active){await switchNotes(false);if(notesMode.active)return;}await mutateNote((async()=>{const note=await invoke('note_create');hints.clear('notes-empty');await invoke('note_open',{id:note.id});})())}catch(error){notice('便签创建或打开失败：'+error)}})());};
 $('notes-entry').onclick=()=>{if(quitting||noteBarrier)return;trackBoardWork(switchNotes(!notesMode.active));};
 document.addEventListener('keydown',e=>{if(!notesMode.active)return;if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();trackBoardWork(switchNotes(false));}else if(e.code==='Space')e.stopImmediatePropagation();},true);
-$('receipt-show').onclick=()=>trackBoardWork((async()=>{if(notesMode.active){await switchNotes(false);if(notesMode.active)return;}for(const j of jobs)j.hidden=false;showCanvas(true);renderJobs();})());
+$('receipt-show').onclick=()=>trackBoardWork((async()=>{if(inkTools?.active)await switchInk(false);if(notesMode.active){await switchNotes(false);if(notesMode.active)return;}for(const j of jobs)j.hidden=false;showCanvas(true);renderJobs();})());
 $('receipt-close').onclick=()=>hints.clear('tasks');
 let copyingImage=false;
 async function copyImage(item){
@@ -299,7 +319,7 @@ document.addEventListener('copy',event=>{
 });
 document.addEventListener('paste',quickgenClipboardIntake.create({allowed:()=>document.hasFocus()&&!passthrough&&!notesMode.active&&!noteBarrier&&!quitting&&!managerOpening&&storageReady,importFiles,clear:()=>hints.clear('clipboard-input'),report:text=>hints.set('clipboard-input',{priority:20,text})}));
 let picking=false;$('import').onclick=()=>{picking=true;$('files').click()};$('files').onchange=async e=>{picking=false;await importFiles([...e.target.files]);e.target.value=''};$('files').addEventListener('cancel',()=>picking=false);
-function importFiles(files){if(notesMode.active)return trackBoardWork((async()=>{await switchNotes(false);if(!notesMode.active)return await importFiles(files);})());if(!storageReady){notice('画板尚未恢复，无法导入');return Promise.resolve({added:0});}return trackBoardWork(importFilesWork(files));}
+function importFiles(files){if(inkTools?.active)return trackBoardWork(switchInk(false).then(()=>importFiles(files)));if(notesMode.active)return trackBoardWork((async()=>{await switchNotes(false);if(!notesMode.active)return await importFiles(files);})());if(!storageReady){notice('画板尚未恢复，无法导入');return Promise.resolve({added:0});}return trackBoardWork(importFilesWork(files));}
 async function importFilesWork(files){let added=0;for(const file of files){if(!/^image\/(png|jpeg|webp)$/.test(file.type)||file.size>20*1024*1024){notice('请选择20 MB以内的PNG、JPG或WebP');continue}const url=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file)}),img=new Image();img.src=url;try{await img.decode()}catch{URL.revokeObjectURL(url);notice('图片无法读取');continue}let record;try{record=await invoke('resource_import',{data:url,name:file.name});resourceImages.set(record.resource.id,url)}catch(error){notice(String(error));continue}const r=$('dock').getBoundingClientRect(),i=items.length;items.push({id:'local-'+nextId++,name:file.name,src:url,resourceId:record.resource.id,local:true,addedAt:Date.now(),order:nextId,x:(Math.max(16,r.left>440?r.left-410:r.right+72)+(i%2)*198-tx)/scale,y:(Math.max(80,r.top-24)+Math.floor(i/2)*160-ty)/scale});added++}if(added){restorePanel();renderStack();renderImages();renderOutline();if(!open)showCanvas()}return {added};}
 document.addEventListener('dragover',e=>{if([...e.dataTransfer.types].includes('Files')){e.preventDefault();document.body.classList.add('file-over')}});document.addEventListener('dragleave',e=>{if(!e.relatedTarget)document.body.classList.remove('file-over')});document.addEventListener('drop',async e=>{if(!e.dataTransfer.files.length)return;e.preventDefault();document.body.classList.remove('file-over');await importFiles([...e.dataTransfer.files])});
 window.addEventListener('resize',()=>{if(open&&placed){camera()}});window.addEventListener('beforeunload',()=>localUrls.forEach(url=>URL.revokeObjectURL(url)));
@@ -326,22 +346,28 @@ function saveSoon(){syncNativeSoon();if(!storageReady)return;clearTimeout(saveTi
 function snapshotScene(){return structuredClone({version:1,items:items.map(i=>({...i})),jobs:jobs.map(({card,...j})=>({...j,preset:card.el.dataset.preset,abilitySnapshot:{name:card.name,prompt:card.prompt}})),scale,tx,ty,placed,nextId,jobId,pinned,selected,selection:[...selection],open,passthrough,light:document.body.classList.contains('light')})}
 function saveScene(){if(!storageReady)return;clearTimeout(saveTimer);return persistDurable().catch(error=>{notice('保存失败：'+String(error));throw error});}
  document.addEventListener('pointerup',saveSoon);document.addEventListener('keyup',saveSoon);document.addEventListener('click',saveSoon);document.addEventListener('visibilitychange',()=>{if(document.hidden)saveScene()});window.addEventListener('pagehide',saveScene);
-function applyTheme(mode){document.body.classList.toggle('light',mode==='light'||(mode==='system'&&matchMedia('(prefers-color-scheme:light)').matches));$('theme').innerHTML=icon(document.body.classList.contains('light')?'sun':'moon')}
+function applyTheme(mode){document.documentElement.dataset.theme=mode;document.body.classList.toggle('light',mode==='light'||(mode==='system'&&matchMedia('(prefers-color-scheme:light)').matches));$('theme').innerHTML=icon(document.body.classList.contains('light')?'sun':'moon')}
 function rect(el,pad=0){const r=el.getBoundingClientRect();return{x:r.left-pad,y:r.top-pad,width:r.width+pad*2,height:r.height+pad*2}}
 function syncNativeSoon(){if(nativeTimer)return;nativeTimer=setTimeout(()=>{nativeTimer=null;syncNative()},16)}
-async function syncNative(){if(nativeBusy){nativeDirty=true;return}nativeBusy=true;try{positionHint();const rects=[];for(const id of ['notes-overview','notes-entry','panel-hint','panel','stack','outline','notch','canvas-tools']){const el=$(id);if(!el.closest('[hidden]')&&getComputedStyle(el).display!=='none'&&getComputedStyle(el).visibility!=='hidden')rects.push(rect(el,id==='stack'?32:6))}const visuals=open&&passthrough?[...document.querySelectorAll('#world .board-image,#world .generation-job')].map(el=>rect(el,16)).filter(r=>r.x<innerWidth&&r.y<innerHeight&&r.x+r.width>0&&r.y+r.height>0):[];const hoverTargets=open&&passthrough?[...document.querySelectorAll('#world .board-image')].map(el=>({id:el.dataset.image,rect:rect(el)})):[];await invoke('board_view',{view:{open:open||notesMode.active,passthrough:notesMode.active?false:passthrough,pinned,visuals:notesMode.active?[]:visuals,hoverTargets:notesMode.active?[]:hoverTargets,interacting:Boolean(panelLayout?.active||gesture||panelMotion?.active),rects,panel:rect($('panel'))}})}catch(e){notice(String(e))}finally{nativeBusy=false;if(nativeDirty){nativeDirty=false;syncNativeSoon()}}}
-async function manager(mode){managerOpening=true;try{await syncNative();await invoke('open_manager',{mode});await invoke('show_manager')}catch(e){notice(String(e))}finally{managerOpening=false}}
-$('add-ability').onclick=()=>manager('add');$('library').onclick=()=>manager('library');
+async function syncNative(){if(nativeBusy){nativeDirty=true;return}nativeBusy=true;try{positionHint();const rects=[],inkControls=[];for(const id of ['notes-overview','notes-entry','ink-entry','ink-tools','panel-hint','panel','stack','outline','notch','canvas-tools']){const el=$(id);if(!el.closest('[hidden]')&&getComputedStyle(el).display!=='none'&&getComputedStyle(el).visibility!=='hidden'){const bounds=rect(el,id==='stack'?32:6);rects.push(bounds);if(['ink-entry','ink-tools','panel-hint','notch'].includes(id))inkControls.push(bounds);}}const visuals=open&&passthrough?[...document.querySelectorAll('#world .board-image,#world .generation-job')].map(el=>rect(el,16)).filter(r=>r.x<innerWidth&&r.y<innerHeight&&r.x+r.width>0&&r.y+r.height>0):[];const hoverTargets=open&&passthrough?[...document.querySelectorAll('#world .board-image')].map(el=>({id:el.dataset.image,rect:rect(el)})):[];await invoke('board_view',{view:{open:open||notesMode.active,passthrough:notesMode.active?false:passthrough,pinned,visuals:notesMode.active?[]:visuals,hoverTargets:notesMode.active?[]:hoverTargets,interacting:Boolean(panelLayout?.active||gesture||panelMotion?.active),rects,inkControls,panel:rect($('panel'))}})}catch(e){notice(String(e))}finally{nativeBusy=false;if(nativeDirty){nativeDirty=false;syncNativeSoon()}}}
+async function manager(mode,presetId){managerOpening=true;try{await syncNative();await invoke('open_manager',{mode,presetId});await invoke('show_manager')}catch(e){notice(String(e))}finally{managerOpening=false}}
+$('add-ability').onclick=()=>manager('add');$('library').onclick=()=>manager('library');$('settings').onclick=()=>manager('settings');
 await window.__TAURI__.event.listen('note-changed',e=>{const note=e.payload;if(note.deleted)offerUndo(note);else hints.clear('undo:'+note.id);if(notesMode.active)refreshNotesOverview().catch(error=>notice(String(error)));});
 await window.__TAURI__.event.listen('note-save-error',e=>{const {id,error}=e.payload;const key='note-error:'+id;if(error)hints.set(key,{priority:40,text:'便签保存未完成：'+error,actionText:'查看',action:()=>{if(noteBarrier||quitting)return;trackBoardWork((async()=>{if(notesMode.active){await switchNotes(false);if(notesMode.active)return;}await mutateNote(invoke('note_open',{id}));})().catch(error=>notice(String(error))));}});else hints.clear(key);});
 await window.__TAURI__.event.listen('config-changed',async e=>{if(e.payload==='layout')return;try{const cfg=await invoke('load_config');renderCards(cfg.abilities);applyTheme(cfg.theme);syncNativeSoon()}catch(e){notice(String(e))}});
-function groupBlur(){clearTimeout(blurTimer);blurTimer=setTimeout(async()=>{if(outboundDragging||notesMode.active||noteBarrier||pinned||picking||managerOpening||panelLayout?.active||externalDragging)return;try{if(await invoke('board_group_focused'))return}catch(e){notice(String(e));return}if(open)setPassThrough(true);else collapse()},150)}
+function groupBlur(){clearTimeout(blurTimer);blurTimer=setTimeout(async()=>{if(outboundDragging||notesMode.active||inkTools?.active||noteBarrier||pinned||picking||managerOpening||panelLayout?.active||externalDragging)return;try{if(await invoke('board_group_focused'))return}catch(e){notice(String(e));return}if(open)setPassThrough(true);else collapse()},150)}
 const nativeChannel=new window.__TAURI__.core.Channel();
 nativeChannel.onmessage=async event=>{
  if(event.type==='recovery-export'){
-  if(quitting||noteBarrier)return;noteBarrier=true;
-  if(!durable||!storageReady){noteBarrier=false;notice('画板尚未切换到资源库，请先保留原现场');return;}
-  const priorWork=[...pendingBoardWork];trackBoardWork((async()=>{try{await Promise.allSettled(priorWork);await invoke('notes_flush');await persistDurable();const result=await invoke('recovery_export');notice('恢复副本已验证并保存');await invoke('board_recovery_open',{directory:result.directory});}catch(error){notice('恢复副本未完成：'+String(error));}finally{if(!notesMode.active)await invoke('notes_release').catch(error=>notice(String(error)));noteBarrier=false;}})());return;
+  const reply=async(result,error)=>{if(event.requestId)await invoke('board_recovery_complete',{requestId:event.requestId,result:result||null,error:error?String(error):null});};
+  if(quitting||noteBarrier){await reply(null,'正在保存或退出，请稍后重试');return;}
+  if(!durable||!storageReady){await reply(null,'画板尚未切换到资源库，请先保留原现场');notice('画板尚未切换到资源库，请先保留原现场');return;}
+  noteBarrier=true;const priorWork=[...pendingBoardWork];
+  trackBoardWork((async()=>{try{
+   await Promise.allSettled(priorWork);await invoke('notes_flush');await persistDurable();const result=await invoke('recovery_export');
+   await reply(result,null);if(!event.requestId){notice('恢复副本已验证并保存');await invoke('board_recovery_open',{directory:result.directory});}
+  }catch(error){await reply(null,error).catch(report=>notice(String(report)));notice('恢复副本未完成：'+String(error));}
+  finally{if(!notesMode.active)await invoke('notes_release').catch(error=>notice(String(error)));noteBarrier=false;}})());return;
  }
  if(event.type==='flush-and-quit'){
   const exitTrace=async step=>{if(diagnostic==='generation-recovery')await invoke('board_capacity_progress',{result:{step,pending:pendingBoardWork.size,syncBusy:taskSyncBusy}});};
@@ -355,12 +381,12 @@ nativeChannel.onmessage=async event=>{
    clearTimeout(saveTimer);
    await exitTrace('quit-save-scene');
    if(storageReady)await persistDurable();
-   await exitTrace('quit-flush-notes');await invoke('notes_flush');await exitTrace('quit-host-barrier');await invoke('board_quit_saved');
+   await invoke('ink_set_active',{enabled:false});await exitTrace('quit-flush-notes');await invoke('notes_flush');await exitTrace('quit-host-barrier');await invoke('board_quit_saved');
   }catch(error){if(!notesMode.active)await invoke('notes_release').catch(()=>{});quitting=false;document.body.inert=false;notice('退出前保存失败，请保留当前页面：'+String(error));if(diagnostic==='generation-recovery')await invoke('board_capacity_progress',{result:{step:'quit-error',error:String(error)}});}
   return;
  }
  if(event.type==='show-panel'){if(notesMode.active){await trackBoardWork(switchNotes(false));if(notesMode.active)return;}setPassThrough(false,true);await restorePanel(true);await syncNative()}
- if(event.type==='toggle'){if(notesMode.active){await trackBoardWork(switchNotes(false));return;}if(open)setPassThrough(!passthrough,true);else{restorePanel(true);if(items.length)showCanvas(true)}syncNativeSoon()}
+ if(event.type==='toggle'){if(inkTools?.active){await trackBoardWork(switchInk(false));return;}if(notesMode.active){await trackBoardWork(switchNotes(false));return;}if(open)setPassThrough(!passthrough,true);else{restorePanel(true);if(items.length)showCanvas(true)}syncNativeSoon()}
  if(event.type==='hover'&&passthrough&&open){desktopPeekIds=new Set(event.ids);paintDesktopPeek()}
  if(event.type==='group-blur')groupBlur();
  if(event.type==='display'){panelMotion?.settle();cancelGesture();trackBoardWork(invoke('notes_rehome').then(()=>hints.clear('note-display-error')).catch(error=>hints.set('note-display-error',{priority:40,text:'便签窗口恢复未完成：'+error,actionText:'重试',action:()=>trackBoardWork(invoke('notes_rehome').then(()=>hints.clear('note-display-error')).catch(error=>notice(String(error))))})));syncNativeSoon()}
@@ -398,6 +424,8 @@ if(diagnostic==='notes-restart'&&(await invoke('storage_status')).isolated){awai
 if(diagnostic==='notes-fault'&&(await invoke('storage_status')).isolated){await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='notes-fault.js';script.onload=resolve;script.onerror=reject;document.head.append(script)});quickgenNotesFault.run();}
 if(diagnostic==='notes-capacity'&&(await invoke('storage_status')).isolated){await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='notes-capacity.js';script.onload=resolve;script.onerror=reject;document.head.append(script)});quickgenNotesCapacity.run({set:async value=>{await switchNotes(value);if(notesMode.active!==value)throw Error('notes mode transition failed');},active:()=>notesMode.active});}
 if(boardRehearsal)quickgenBoardRehearsal.run({durable:()=>durable,restoreError:()=>storageError});
+if(['notes-rich-smoke','notes-rich-capacity'].includes(diagnostic)&&(await invoke('storage_status')).isolated){await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='notes-rich-validation.js';script.onload=resolve;script.onerror=reject;document.head.append(script)});quickgenNotesRichValidation.run({set:async value=>{await switchNotes(value);if(notesMode.active!==value)throw Error('notes mode transition failed');},ink:async value=>{await switchInk(value);if(inkTools.active!==value)throw Error('ink mode transition failed');}},diagnostic);}
 
 })().catch(error=>{document.body.inert=false;const el=document.getElementById('notice');el.hidden=false;el.textContent='画板启动失败：'+String(error)});
+
 

@@ -5,7 +5,7 @@ function fit(count,width,height){const columns=Math.max(1,Math.ceil(Math.sqrt(co
 function mount({layer,onToggle,onError}){
  const grid=layer.firstElementChild;let camera={x:0,y:0,scale:1},ready=false,pan=null,suppress=false;
  const paint=()=>grid.style.transform=`translate(${camera.x}px,${camera.y}px) scale(${camera.scale})`;
- function render(notes){grid.replaceChildren();for(const note of notes){const tile=document.createElement('button');tile.className='note-tile';tile.type='button';tile.textContent=note.text;tile.classList.toggle('not-resident',!note.resident);tile.setAttribute('aria-pressed',String(note.resident));tile.setAttribute('aria-label',(note.text||'空白便签')+'，'+(note.resident?'常驻桌面':'不常驻'));tile.onclick=async()=>{tile.disabled=true;try{await onToggle(note)}catch(e){onError(e)}finally{tile.disabled=false}};grid.append(tile);}if(!ready){const fitted=fit(notes.length,layer.clientWidth,layer.clientHeight);grid.style.gridTemplateColumns=`repeat(${fitted.columns},220px)`;camera=fitted;ready=true;}paint();}
+ function render(notes){grid.replaceChildren();for(const note of notes){const tile=document.createElement('button');tile.className='note-tile';tile.type='button';if(root.quickgenNoteAppearance)root.quickgenNoteAppearance.preview(tile,note);else tile.textContent=note.text;tile.classList.toggle('not-resident',!note.resident);tile.setAttribute('aria-pressed',String(note.resident));tile.setAttribute('aria-label',(note.text||'空白便签')+'，'+(note.resident?'常驻桌面':'不常驻'));tile.onclick=async()=>{tile.disabled=true;try{await onToggle(note)}catch(e){onError(e)}finally{tile.disabled=false}};grid.append(tile);}if(!ready){const fitted=fit(notes.length,layer.clientWidth,layer.clientHeight);grid.style.gridTemplateColumns=`repeat(${fitted.columns},220px)`;camera=fitted;ready=true;}paint();}
  layer.addEventListener('pointerdown',e=>{if(e.button!==0&&e.button!==1)return;e.preventDefault();suppress=false;pan={id:e.pointerId,x:e.clientX,y:e.clientY,cx:camera.x,cy:camera.y,moved:false};});
  layer.addEventListener('pointermove',e=>{if(!pan||pan.id!==e.pointerId)return;const dx=e.clientX-pan.x,dy=e.clientY-pan.y;if(!pan.moved&&Math.hypot(dx,dy)<5)return;pan.moved=true;layer.setPointerCapture(e.pointerId);camera={...camera,x:pan.cx+dx,y:pan.cy+dy};paint();});
  const end=e=>{if(!pan||pan.id!==e.pointerId)return;suppress=pan.moved;pan=null;if(layer.hasPointerCapture(e.pointerId))layer.releasePointerCapture(e.pointerId);};
@@ -27,3 +27,4 @@ function createMode({list,flush,present,release,render,changed,empty}){
 }
 const api={zoomAt,fit,mount,createMode};if(typeof module==='object')module.exports=api;else root.quickgenNotesOverview=api;
 })(typeof window==='object'?window:globalThis);
+

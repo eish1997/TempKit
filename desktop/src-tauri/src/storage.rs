@@ -8,6 +8,7 @@ fn defaults()->Value{json!({"version":1,"theme":"system","layout":{"edge":"top",
 fn validate(section:&str,value:&Value)->Result<(),String>{
  match section{
  "theme"=>{if !["system","light","dark"].contains(&value.as_str().unwrap_or("")){return Err("Invalid theme".into())}},
+ "ink"=>{serde_json::from_value::<quickgen_desktop::ink_session::Style>(value.clone()).map_err(|e|e.to_string())?.validate()?;},
  "layout"=>{if !["top","left","right"].contains(&value["edge"].as_str().unwrap_or("")) {return Err("Invalid edge".into())}
  for (key,min,max) in [("fraction",0.,1.),("width",120.,20000.),("height",120.,20000.),("heightIndex",0.,3.)] {let n=value[key].as_f64().ok_or("Invalid layout")?;if !n.is_finite()||n<min||n>max||(key=="heightIndex"&&n.fract()!=0.){return Err("Invalid layout range".into())}}
  },
@@ -32,26 +33,31 @@ fn read_dir(dir:&std::path::Path)->Result<Value,String>{
 }
 #[tauri::command]
 pub fn load_config(app:tauri::AppHandle)->Result<Value,String>{let _guard=LOCK.lock().map_err(|e|e.to_string())?;read_dir(&directory(&app)?)}
+pub(crate) fn image_configuration(card:&Value)->Value{json!({"imageBinding":card.get("imageBinding").filter(|v|!v.is_null()).cloned().unwrap_or(Value::Null),"imageParameters":card.get("imageParameters").filter(|v|!v.is_null()).cloned().unwrap_or(json!({}))})}
+fn check_image_configuration(card:&Value,expected:&Value)->Result<(),String>{
+ if image_configuration(card)!=*expected{return Err("模型配置冲突：已保存配置已改变，请重新核对后操作".into())}Ok(())
+}
 // Update only the selected card under the same lock as all other config writes.
-pub(crate) fn bind_image_preset(app:&tauri::AppHandle,id:&str,capability:quickgen_desktop::contracts::CapabilityRef,parameters:quickgen_desktop::contracts::Parameters)->Result<(),String>{
- bind_image_preset_dir(&directory(app)?,id,capability,parameters)?;
+pub(crate) fn bind_image_preset(app:&tauri::AppHandle,id:&str,capability:quickgen_desktop::contracts::CapabilityRef,parameters:quickgen_desktop::contracts::Parameters,expected:Value)->Result<(),String>{
+ bind_image_preset_dir(&directory(app)?,id,capability,parameters,expected)?;
  app.emit("config-changed","abilities").map_err(|e|e.to_string())
 }
-fn bind_image_preset_dir(dir:&std::path::Path,id:&str,capability:quickgen_desktop::contracts::CapabilityRef,parameters:quickgen_desktop::contracts::Parameters)->Result<(),String>{
+fn bind_image_preset_dir(dir:&std::path::Path,id:&str,capability:quickgen_desktop::contracts::CapabilityRef,parameters:quickgen_desktop::contracts::Parameters,expected:Value)->Result<(),String>{
  let _guard=LOCK.lock().map_err(|e|e.to_string())?;
  let mut config=read_dir(dir)?;
  let card=config["abilities"].as_array_mut().ok_or("Invalid abilities")?.iter_mut().find(|card|card["id"].as_str()==Some(id)).ok_or("预设已不存在")?;
+ check_image_configuration(card,&expected)?;
  card["imageBinding"]=serde_json::to_value(capability).map_err(|e|e.to_string())?;
  card["imageParameters"]=serde_json::to_value(parameters).map_err(|e|e.to_string())?;
  write_dir(dir,config)
 }
-pub(crate) fn unbind_image_preset(app:&tauri::AppHandle,id:&str,expected:quickgen_desktop::contracts::CapabilityRef)->Result<(),String>{
+pub(crate) fn unbind_image_preset(app:&tauri::AppHandle,id:&str,expected:Value)->Result<(),String>{
  unbind_image_preset_dir(&directory(app)?,id,expected)?;app.emit("config-changed","abilities").map_err(|e|e.to_string())
 }
-fn unbind_image_preset_dir(dir:&std::path::Path,id:&str,expected:quickgen_desktop::contracts::CapabilityRef)->Result<(),String>{
+fn unbind_image_preset_dir(dir:&std::path::Path,id:&str,expected:Value)->Result<(),String>{
  let _guard=LOCK.lock().map_err(|e|e.to_string())?;let mut config=read_dir(dir)?;
  let card=config["abilities"].as_array_mut().ok_or("Invalid abilities")?.iter_mut().find(|card|card["id"].as_str()==Some(id)).ok_or("预设已不存在")?;
- if card["imageBinding"]!=serde_json::to_value(expected).map_err(|e|e.to_string())?{return Err("模型绑定已改变，请重新打开后操作".into())}
+ check_image_configuration(card,&expected)?;
  let card=card.as_object_mut().ok_or("Invalid ability")?;card.remove("imageBinding");card.remove("imageParameters");write_dir(dir,config)
 }
 pub fn migration_backup(app:&tauri::AppHandle)->Result<Value,String>{
@@ -95,6 +101,7 @@ pub fn save_config(app:tauri::AppHandle,section:String,value:Value)->Result<(),S
 
 fn hydrate(dir:&std::path::Path,mut config:Value)->Result<Value,String>{
  if validate("theme",&config["theme"]).is_err(){config["theme"]=json!("system")}
+ if validate("ink",&config["ink"]).is_err(){config["ink"]=serde_json::to_value(quickgen_desktop::ink_session::Style::default()).map_err(|e|e.to_string())?;}
  for item in config["abilities"].as_array_mut().unwrap(){
   if let Some(name)=item["coverFile"].as_str(){let path=dir.join("covers").join(name);match fs::read(path){Ok(bytes)=>{let mime=if name.ends_with(".png"){"image/png"}else if name.ends_with(".webp"){"image/webp"}else{"image/jpeg"};item["cover"]=json!(format!("data:{};base64,{}",mime,base64::engine::general_purpose::STANDARD.encode(bytes)));},Err(_)=>{item["cover"]=json!("");item["coverWarning"]=json!("封面副本缺失");}}}
  }Ok(config)
@@ -122,13 +129,32 @@ fn write_dir(dir:&std::path::Path,mut config:Value)->Result<(),String>{
   let dir=temp();let mut config=defaults();config["theme"]=json!("dark");config["abilities"][0]["cover"]=json!("data:image/png;base64,AQID");write_dir(&dir,config).unwrap();let before=read_dir(&dir).unwrap();
   let capability=quickgen_desktop::contracts::CapabilityRef{connection_id:"fixture".into(),capability_id:"image-edit".into(),revision:"v1".into()};
   let options=std::collections::BTreeMap::from([("size".into(),quickgen_desktop::contracts::ParameterValue::Text("fixture-size".into()))]);
-  bind_image_preset_dir(&dir,"clay",capability.clone(),options.clone()).unwrap();let after=read_dir(&dir).unwrap();
+  bind_image_preset_dir(&dir,"clay",capability.clone(),options.clone(),image_configuration(&before["abilities"][0])).unwrap();let after=read_dir(&dir).unwrap();
   assert_eq!(after["theme"],before["theme"]);assert_eq!(after["layout"],before["layout"]);assert_eq!(after["abilities"][1],before["abilities"][1]);
   for key in ["name","prompt","cover","coverFile"]{assert_eq!(after["abilities"][0][key],before["abilities"][0][key]);}
   assert_eq!(after["abilities"][0]["imageParameters"]["size"],"fixture-size");assert_eq!(after["abilities"][0]["imageBinding"]["connection_id"],"fixture");
-  assert!(bind_image_preset_dir(&dir,"missing",capability.clone(),options).is_err());assert_eq!(read_dir(&dir).unwrap(),after);
-  let mut stale=capability.clone();stale.revision="old".into();assert!(unbind_image_preset_dir(&dir,"clay",stale).is_err());assert_eq!(read_dir(&dir).unwrap(),after);
-  unbind_image_preset_dir(&dir,"clay",capability).unwrap();assert_eq!(read_dir(&dir).unwrap(),before);
+  assert!(bind_image_preset_dir(&dir,"missing",capability.clone(),options,image_configuration(&after["abilities"][0])).is_err());assert_eq!(read_dir(&dir).unwrap(),after);
+  let mut stale=capability.clone();stale.revision="old".into();assert!(unbind_image_preset_dir(&dir,"clay",json!({"imageBinding":stale,"imageParameters":{}})).is_err());assert_eq!(read_dir(&dir).unwrap(),after);
+  unbind_image_preset_dir(&dir,"clay",image_configuration(&after["abilities"][0])).unwrap();assert_eq!(read_dir(&dir).unwrap(),before);
+ }
+
+ #[test]fn image_configuration_compare_and_swap_rejects_stale_bind_unbind_and_parameters(){
+  let dir=temp();write_dir(&dir,defaults()).unwrap();let original=read_dir(&dir).unwrap();let empty=image_configuration(&original["abilities"][0]);
+  let reference=quickgen_desktop::contracts::CapabilityRef{connection_id:"fixture".into(),capability_id:"image-edit".into(),revision:"v1".into()};
+  let params=std::collections::BTreeMap::new();
+  bind_image_preset_dir(&dir,"clay",reference.clone(),params.clone(),empty.clone()).unwrap();
+  let bound=read_dir(&dir).unwrap();let baseline=image_configuration(&bound["abilities"][0]);
+  assert!(bind_image_preset_dir(&dir,"clay",reference.clone(),params.clone(),empty).unwrap_err().contains("冲突"));
+  let changed=std::collections::BTreeMap::from([("size".into(),quickgen_desktop::contracts::ParameterValue::Text("new-size".into()))]);
+  bind_image_preset_dir(&dir,"clay",reference.clone(),changed.clone(),baseline.clone()).unwrap();let latest=read_dir(&dir).unwrap();
+  assert!(unbind_image_preset_dir(&dir,"clay",baseline.clone()).is_err());
+  let mut rebind=reference.clone();rebind.revision="v2".into();
+  assert!(bind_image_preset_dir(&dir,"clay",rebind.clone(),params.clone(),baseline).is_err());assert_eq!(read_dir(&dir).unwrap(),latest);
+  let expected=image_configuration(&latest["abilities"][0]);let mut unrelated=latest.clone();unrelated["abilities"][1]["imageBinding"]=json!(rebind);unrelated["abilities"][0]["name"]=json!("新名称");write_dir(&dir,unrelated.clone()).unwrap();
+  bind_image_preset_dir(&dir,"clay",rebind,changed,expected.clone()).unwrap();let rebound=read_dir(&dir).unwrap();assert_eq!(rebound["abilities"][1],unrelated["abilities"][1]);assert_eq!(rebound["abilities"][0]["name"],"新名称");
+  assert!(unbind_image_preset_dir(&dir,"clay",expected).is_err());
+  unbind_image_preset_dir(&dir,"clay",image_configuration(&rebound["abilities"][0])).unwrap();
+  assert!(bind_image_preset_dir(&dir,"clay",reference,params,image_configuration(&rebound["abilities"][0])).is_err());
  }
  fn temp()->PathBuf{let dir=std::env::temp_dir().join(format!("quickgen-test-{}-{}",std::process::id(),std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));fs::create_dir_all(&dir).unwrap();dir}
  #[test]fn theme_roundtrip_and_legacy_config(){

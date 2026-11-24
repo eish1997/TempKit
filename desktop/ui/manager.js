@@ -5,10 +5,21 @@ const fail=e=>message.textContent=String(e);document.getElementById('dismiss').i
 let abilities=[],cover='';
 // The host owns atomic append and duplicate detection, including across reloads.
 function save(ability){return invoke('add_ability',{ability})}
-let libraryRenderSequence=0;
-async function library(){const sequence=++libraryRenderSequence;const cfg=await invoke('load_config');if(sequence!==libraryRenderSequence)return;abilities=cfg.abilities;content.replaceChildren();const settings=document.createElement('button');settings.type='button';settings.textContent='New API 连接';settings.onclick=async()=>{try{await invoke('open_manager',{mode:'gateway'});await invoke('show_manager');}catch(error){fail(error);}};content.append(settings);for(const item of presets){const row=document.createElement('div');row.className='row';const info=document.createElement('div');const title=document.createElement('strong');title.textContent=item.name;const desc=document.createElement('p');desc.textContent=item.prompt;info.append(title,desc);const add=document.createElement('button');const added=abilities.some(a=>a.id===item.id);add.innerHTML=quickgenIcons[added?'check':'plus']+'<span>'+(added?'已添加':'添加')+'</span>';add.disabled=abilities.some(a=>a.id===item.id);add.onclick=async()=>{add.disabled=true;try{await save(item);await library()}catch(e){fail(e);add.disabled=false}};row.append(info,add);content.append(row)}}
+function libraryPage(){return {title:'预设库',mount:async ctx=>{
+ const cfg=await ctx.invoke('load_config');abilities=cfg.abilities;
+ const items=[...presets,...abilities.filter(a=>!presets.some(p=>p.id===a.id))];
+ for(const item of items){const row=document.createElement('div');row.className='row';const info=document.createElement('div'),title=document.createElement('strong'),desc=document.createElement('p');title.textContent=item.name;desc.textContent=item.prompt;info.append(title,desc);row.append(info);
+ const added=abilities.some(a=>a.id===item.id),button=document.createElement('button');button.id='preset-'+item.id;button.textContent=added?'模型设置':'添加';
+ button.onclick=async()=>{if(added)return ctx.push(window.quickgenPresetSettingsPage(item.id));button.disabled=true;try{await ctx.invoke('add_ability',{ability:item});button.textContent='模型设置';button.disabled=false;button.onclick=()=>ctx.push(window.quickgenPresetSettingsPage(item.id));}catch(error){ctx.fail(error);button.disabled=false;}};row.append(button);ctx.root.append(row);
+ }
+}};}
 const mode=new URLSearchParams(location.search).get('mode');document.getElementById('heading').textContent=mode==='library'?'预设库':'自定义能力';
-if(mode==='gateway'){document.getElementById('heading').textContent='New API 连接';quickgenGatewaySettings.mount(content,invoke,fail).catch(fail);}else if(mode==='library')library().catch(fail);else{
+if(['settings','gateway','library','binding'].includes(mode)){
+ const back=document.getElementById('back');back.innerHTML=quickgenIcons['arrow-left'];
+ const navigation=window.quickgenManagerNavigation.create({content,heading:document.getElementById('heading'),back,message,invoke,onRootBack:mode==='binding'?()=>document.getElementById('dismiss').onclick():null});
+ document.getElementById('dismiss').onclick=async()=>{try{await invoke('close_manager');navigation.dispose();}catch(error){fail(error);}};
+ navigation.start(mode==='binding'?window.quickgenPresetSettingsPage(new URLSearchParams(location.search).get('presetId')):mode==='library'?libraryPage():mode==='gateway'?window.quickgenSettingsPages.connections():window.quickgenSettingsPages.home());
+}else{
 content.innerHTML='<form><label>能力名称<input name="name" required maxlength="24"></label><label>处理指令<textarea name="prompt" required maxlength="2000"></textarea></label><label>卡片封面<input name="cover" type="file" accept="image/png,image/jpeg,image/webp"></label><div class="actions"><button type="button" id="cancel">取消</button><button type="submit">添加到面板</button></div></form>';
 const form=content.querySelector('form');document.getElementById('cancel').onclick=()=>invoke('close_manager').catch(fail);
 let coverTask=Promise.resolve(),coverError=null,coverSequence=0,saved=false;

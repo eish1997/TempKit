@@ -3,12 +3,27 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "tauri dev",
-    "build": "tauri build --no-bundle",
+    "dev": "node scripts/build-note-editor.mjs && tauri dev",
+    "build": "node scripts/build-note-editor.mjs && tauri build --no-bundle",
+    "build:editor": "node scripts/build-note-editor.mjs",
     "info": "tauri info",
     "test": "cargo test --manifest-path src-tauri/Cargo.toml --release"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "2.12.4"
+    "@tauri-apps/cli": "2.12.4",
+    "esbuild": "0.28.2",
+    "jsdom": "29.1.1",
+    "lucide-static": "0.468.0"
+  },
+  "dependencies": {
+    "prosemirror-commands": "1.7.2",
+    "prosemirror-history": "1.5.2",
+    "prosemirror-inputrules": "1.7.0",
+    "prosemirror-keymap": "1.2.3",
+    "prosemirror-model": "1.25.13",
+    "prosemirror-schema-list": "1.6.1",
+    "prosemirror-state": "1.4.4",
+    "prosemirror-transform": "1.12.7",
+    "prosemirror-view": "1.43.1"
   }
 }

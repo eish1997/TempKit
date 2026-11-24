@@ -1,0 +1,10 @@
+const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+test('annotation exclusions contain only ink controls, never the board or note overview',async()=>{
+ const source=fs.readFileSync(require.resolve('../ui/board.js'),'utf8');const start=source.indexOf('async function syncNative(){'),end=source.indexOf('async function manager(',start);let view;
+ const ids=['notes-overview','notes-entry','ink-entry','ink-tools','panel-hint','panel','stack','outline','notch','canvas-tools'];const elements=Object.fromEntries(ids.map((id,i)=>[id,{id,i,closest:()=>null}]));
+ const context={nativeBusy:false,nativeDirty:false,positionHint:()=>{},$:id=>elements[id],getComputedStyle:()=>({display:'block',visibility:'visible'}),rect:el=>({x:el.i*100,y:10,width:20,height:20}),open:true,passthrough:false,notesMode:{active:false},pinned:true,panelLayout:null,gesture:null,panelMotion:null,invoke:async(_,args)=>{view=args.view},notice:e=>{throw Error(e)}};vm.createContext(context);vm.runInContext(source.slice(start,end),context);await vm.runInContext('syncNative()',context);
+ assert.deepEqual(Array.from(view.inkControls,r=>r.x),[200,300,400,800]);assert.equal(view.rects.length,10);assert.equal(view.open,true);
+});
+test('opening the pen preserves an already visible board and awaits native geometry',async()=>{
+ const source=fs.readFileSync(require.resolve('../ui/board.js'),'utf8');const start=source.indexOf('async function switchInk(value){'),end=source.indexOf('async function clearInk()',start);let boardVisible=true;const calls=[];const context={quitting:false,noteBarrier:false,notesMode:{active:false},hideCanvas:()=>{boardVisible=false},syncNative:async()=>calls.push('geometry'),inkTools:{set:async value=>calls.push(value)},hints:{clear:()=>{},set:()=>{}}};vm.createContext(context);vm.runInContext(source.slice(start,end),context);await vm.runInContext('switchInk(true)',context);assert.equal(boardVisible,true);assert.deepEqual(calls,['geometry',true]);
+});

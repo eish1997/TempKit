@@ -1,6 +1,8 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>便签</title><link rel="stylesheet" href="note.css"></head><body>
-<header id="note-header"><span class="note-grip" aria-hidden="true">⠿</span><button id="top" aria-label="置顶便签" title="置顶便签" aria-pressed="false" disabled>置顶</button><button id="more" aria-label="更多便签操作" aria-expanded="false">···</button><button id="hide" aria-label="收起便签">×</button></header>
+<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><script src="webview-context-menu.js"></script><meta name="viewport" content="width=device-width,initial-scale=1"><title>便签</title><link rel="stylesheet" href="note.css"><link rel="stylesheet" href="note-editor.css"><link rel="stylesheet" href="note-appearance.css"></head><body>
+<main id="note-sheet"><header id="note-header"><span class="note-grip" aria-hidden="true">⠿</span><button id="note-theme" aria-label="便签主题颜色" title="便签主题颜色" aria-expanded="false"></button><button id="top" aria-label="置顶便签" title="置顶便签" aria-pressed="false" disabled>置顶</button><button id="more" aria-label="更多便签操作" aria-expanded="false">···</button><button id="hide" aria-label="收起便签">×</button></header><div id="note-theme-menu" class="note-palette" role="group" aria-label="便签主题" hidden></div>
 <div id="note-menu" hidden><button id="delete" aria-label="删除便签" disabled>删除便签</button></div>
-<textarea id="text" aria-label="便签内容" placeholder="记点什么…" spellcheck="false"></textarea>
-<div id="feedback"><span id="status" role="status"></span><button id="retry" hidden>重试载入</button></div><button id="resize" aria-label="调整便签大小"></button>
-<script src="icons.js"></script><script src="overlay-icons.js"></script><script src="note.js"></script></body></html>
+<div id="text"></div>
+<nav id="note-tools" aria-label="便签格式"></nav>
+<div id="feedback"><span id="status" role="status"></span><button id="retry" hidden>重试载入</button></div><p id="interaction-error" role="alert" hidden></p><button id="resize" aria-label="调整便签大小"></button></main><nav id="quote-tabs" aria-label="引用片段" hidden></nav>
+<script src="icons.js"></script><script src="overlay-icons.js"></script><script src="theme.js"></script><script src="note-icons.js"></script><script src="note-appearance.js"></script><script src="note-editor.bundle.js"></script><script src="note.js"></script></body></html>
+

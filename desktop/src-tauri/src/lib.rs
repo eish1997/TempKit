@@ -8,6 +8,8 @@ pub mod tasks;
 pub mod scenes;
 pub mod recovery_export;
 pub mod notes;
+pub mod note_document;
+pub mod ink_session;
 
 #[cfg(windows)]
 pub mod native_file_drag;

@@ -8,7 +8,7 @@ use base64::Engine;
 type Reply=Result<serde_json::Value,String>;
 enum Operation {ImageBudget(Option<u64>),ImageStorage(String),
 #[cfg(feature="desktop-diagnostics")] GenerationTest(String),
-ReadImageBinding(quickgen_desktop::contracts::CapabilityRef),UnbindImagePreset(String,quickgen_desktop::contracts::CapabilityRef),BindImagePreset(String,String,quickgen_desktop::image_protocol::ImageEditPolicy,quickgen_desktop::contracts::Parameters),ImageStart(String),ImageShutdown,ImageRetrySave(String,u32,u64),GatewayProbe(String,mpsc::Sender<Result<(quickgen_desktop::gateway_profiles::GatewayProfile,quickgen_desktop::credential_vault::Secret,String),String>>),GatewayProbeCheck(String,String,Option<Vec<String>>),GatewayList,GatewayConfigure(quickgen_desktop::gateway_profiles::GatewayProfile,quickgen_desktop::credential_vault::Secret),GatewayRotate(String,String,String,quickgen_desktop::credential_vault::Secret),GatewayRevoke(String),CopyRead(String,mpsc::Sender<Result<(String,Vec<u8>),String>>),PrepareDrag(String,mpsc::Sender<Result<quickgen_desktop::drag_exports::DragCopy,String>>),Notes,NoteCreate,NoteGet(String,bool),NotePatch(String,quickgen_desktop::notes::NotePatch),
+ReadImageBinding(quickgen_desktop::contracts::CapabilityRef),UnbindImagePreset(String,serde_json::Value),BindImagePreset(String,String,quickgen_desktop::image_protocol::ImageEditPolicy,quickgen_desktop::contracts::Parameters,serde_json::Value),ImageStart(String),ImageShutdown,ImageRetrySave(String,u32,u64),GatewayProbe(String,mpsc::Sender<Result<(quickgen_desktop::gateway_profiles::GatewayProfile,quickgen_desktop::credential_vault::Secret,String),String>>),GatewayProbeCheck(String,String,Option<Vec<String>>),GatewayList,GatewayConfigure(quickgen_desktop::gateway_profiles::GatewayProfile,quickgen_desktop::credential_vault::Secret),GatewayRotate(String,String,String,quickgen_desktop::credential_vault::Secret),GatewayRevoke(String),CopyRead(String,mpsc::Sender<Result<(String,Vec<u8>),String>>),PrepareDrag(String,mpsc::Sender<Result<quickgen_desktop::drag_exports::DragCopy,String>>),Notes,NoteCreate([f64;4],String),NoteGet(String,bool),NotePatch(String,quickgen_desktop::notes::NotePatch),
 #[cfg(feature="desktop-diagnostics")] ReviewFault(bool),
 #[cfg(feature="desktop-diagnostics")] NotesFault(String,String,bool),
 Read(String),ReadExternal(String),Import(String,String),Prepare(serde_json::Value),Verify(String),Activate(serde_json::Value),Storage,Export,Submit(Vec<quickgen_desktop::tasks::MockSubmission>),Control(quickgen_desktop::tasks::TaskControl),Feed(Option<u64>),Tasks,Scene,SaveScene(u64,serde_json::Value),Place(quickgen_desktop::scenes::OutputPlacement)}
@@ -22,7 +22,7 @@ impl Operation {
    Self::ImageStart(..)=>"image_start",Self::ImageShutdown=>"image_shutdown",Self::ImageRetrySave(..)=>"image_retry_save",
    Self::GatewayProbe(..)=>"gateway_probe",Self::GatewayProbeCheck(..)=>"gateway_probe_check",Self::GatewayList=>"gateway_list",
    Self::GatewayConfigure(..)=>"gateway_configure",Self::GatewayRotate(..)=>"gateway_rotate",Self::GatewayRevoke(..)=>"gateway_revoke",
-   Self::CopyRead(..)=>"copy_read",Self::PrepareDrag(..)=>"drag_prepare",Self::Notes=>"notes_list",Self::NoteCreate=>"note_create",
+   Self::CopyRead(..)=>"copy_read",Self::PrepareDrag(..)=>"drag_prepare",Self::Notes=>"notes_list",Self::NoteCreate(..)=>"note_create",
    Self::NoteGet(..)=>"note_get",Self::NotePatch(..)=>"note_patch",Self::ReviewFault(..)=>"review_fault",Self::NotesFault(..)=>"notes_fault",
    Self::Read(..)=>"resource_read",Self::ReadExternal(..)=>"external_read",Self::Import(..)=>"resource_import",
    Self::Prepare(..)=>"migration_prepare",Self::Verify(..)=>"migration_verify",Self::Activate(..)=>"migration_activate",
@@ -108,7 +108,7 @@ async fn dispatch(window:tauri::WebviewWindow,operation:Operation)->Reply {
                              "pause-scheduling" if !image_worker.busy()=>{scheduling=false;Ok(serde_json::json!(null))},
                              "resume-scheduling"=>{scheduling=true;wake=true;Ok(serde_json::json!(null))},
                              "performance-timings"=>Ok(performance_trace::take()),
-                             "setup"=>{let reference=quickgen_desktop::generation_fixture::setup(service)?;crate::storage::bind_image_preset(&app,"clay",reference,std::collections::BTreeMap::new())?;quickgen_desktop::generation_fixture::fault(service,true)},
+                             "setup"=>{let reference=quickgen_desktop::generation_fixture::setup(service)?;crate::storage::bind_image_preset(&app,"clay",reference,std::collections::BTreeMap::new(),crate::storage::image_configuration(crate::storage::load_config(app.clone())?["abilities"].as_array().ok_or("Invalid abilities")?.iter().find(|card|card["id"]=="clay").ok_or("预设已不存在")?))?;quickgen_desktop::generation_fixture::fault(service,true)},
                              "archive-fault"=>quickgen_desktop::generation_fixture::archive_fault(service,true),
                              "archive-clear"=>quickgen_desktop::generation_fixture::archive_fault(service,false),
                              "download-start"=>quickgen_desktop::generation_fixture::start_download(service),
@@ -120,7 +120,7 @@ async fn dispatch(window:tauri::WebviewWindow,operation:Operation)->Reply {
                             }})(),
                             Operation::ReadImageBinding(reference)=>service.image_binding(&reference).and_then(|binding|serde_json::to_value(binding).map_err(|e|e.to_string())),
                             Operation::UnbindImagePreset(id,expected)=>crate::storage::unbind_image_preset(&app,&id,expected).map(|_|serde_json::json!(null)),
-                            Operation::BindImagePreset(connection_id,preset_id,policy,parameters)=>{
+                            Operation::BindImagePreset(connection_id,preset_id,policy,parameters,expected)=>{
                              (||{
                               if parameters.keys().any(|key|!matches!(key.as_str(),"size"|"quality")){return Err("Only size and quality may be stored as image options".into())}
                               let config=crate::storage::load_config(app.clone())?;
@@ -130,7 +130,7 @@ async fn dispatch(window:tauri::WebviewWindow,operation:Operation)->Reply {
                               let preset=quickgen_desktop::contracts::Preset{schema_version:1,id:preset_id.clone(),name:card["name"].as_str().ok_or("预设名称无效")?.into(),capability:binding.capability.reference.clone(),parameters:task_parameters,cover_resource_id:None};
                               preset.validate(&binding.capability).map_err(|_|"预设参数与模型能力不匹配")?;
                               for(key,allowed)in [("size",&binding.policy.sizes),("quality",&binding.policy.qualities)]{if let Some(value)=parameters.get(key){if !matches!(value,quickgen_desktop::contracts::ParameterValue::Text(value) if allowed.contains(value)){return Err("预设参数不在模型配置中".into())}}}
-                              crate::storage::bind_image_preset(&app,&preset_id,binding.capability.reference.clone(),parameters)?;
+                              crate::storage::bind_image_preset(&app,&preset_id,binding.capability.reference.clone(),parameters,expected)?;
                               serde_json::to_value(binding).map_err(|e|e.to_string())
                              })()
                             },
@@ -143,7 +143,7 @@ async fn dispatch(window:tauri::WebviewWindow,operation:Operation)->Reply {
                             },
                             Operation::GatewayProbeCheck(id,reference,models)=>{let authenticated=models.is_some();service.record_gateway_check_version(&id,&reference,models).map(|_|{if authenticated{wake=true;}serde_json::json!({"active":true})})},
                             Operation::GatewayRotate(id,reference,account,token)=>service.rotate_gateway_credential(&id,&reference,&account,token).and_then(|v|serde_json::to_value(v).map_err(|_|"connection response unavailable".into())),
-                            Operation::GatewayList=>service.gateway_connections().and_then(|v|serde_json::to_value(v).map_err(|_|"connection list unavailable".into())),
+                            Operation::GatewayList=>service.gateway_connection_summaries().and_then(|v|serde_json::to_value(v).map_err(|_|"connection list unavailable".into())),
                             Operation::GatewayConfigure(profile,token)=>service.configure_gateway(profile,token).and_then(|v|serde_json::to_value(v).map_err(|_|"connection response unavailable".into())),
                             Operation::GatewayRevoke(id)=>service.revoke_gateway(&id).map(|_|serde_json::json!({"revoked":true})),
                             Operation::CopyRead(id,reply)=>reply.send(service.read(&id).map(|(record,bytes)|(record.resource.mime,bytes))).map(|_|serde_json::json!(null)).map_err(|_|"copy requester closed".to_string()),
@@ -156,7 +156,7 @@ async fn dispatch(window:tauri::WebviewWindow,operation:Operation)->Reply {
                              else if stage=="write"{service.notes_write_fault(&id,enabled)}else{Err("unknown note fault stage".into())}
                             },
                             Operation::Notes=>service.notes_list().and_then(|v|serde_json::to_value(v).map_err(|e|e.to_string())),
-                            Operation::NoteCreate=>service.note_create().and_then(|v|serde_json::to_value(v).map_err(|e|e.to_string())),
+                            Operation::NoteCreate(area,monitor)=>service.note_create_in(area,monitor).and_then(|v|serde_json::to_value(v).map_err(|e|e.to_string())),
                             Operation::NoteGet(id,_editor)=>{
                              #[cfg(feature="desktop-diagnostics")]
                              if _editor&&note_read_fault.as_deref()==Some(id.as_str()){Err("isolated note read failure".into())}else{service.note_get(&id).and_then(|v|serde_json::to_value(v).map_err(|e|e.to_string()))}
@@ -323,7 +323,7 @@ pub async fn notes_list(window:tauri::WebviewWindow)->Reply{
 }
 #[tauri::command]
 pub async fn note_create(window:tauri::WebviewWindow)->Reply{
- if window.label()!="main"{return Err("main only".into())}dispatch(window,Operation::NoteCreate).await
+ if window.label()!="main"{return Err("main only".into())}let monitor=window.current_monitor().map_err(|e|e.to_string())?.or(window.primary_monitor().map_err(|e|e.to_string())?).ok_or("No available work area")?;let area=monitor.work_area();let scale=monitor.scale_factor();let bounds=[area.position.x as f64/scale,area.position.y as f64/scale,area.size.width as f64/scale,area.size.height as f64/scale];dispatch(window,Operation::NoteCreate(bounds,monitor.name().cloned().unwrap_or_default())).await
 }
 #[tauri::command]
 pub async fn note_get(window:tauri::WebviewWindow,id:String)->Reply{
@@ -463,8 +463,8 @@ pub async fn image_retry_save(window:tauri::WebviewWindow,id:String,attempt:u32,
 }
 
 #[tauri::command]
-pub async fn gateway_bind_preset(window:tauri::WebviewWindow,connection_id:String,preset_id:String,policy:quickgen_desktop::image_protocol::ImageEditPolicy,parameters:quickgen_desktop::contracts::Parameters)->Reply{
- gateway_authorized(window.label())?;dispatch(window,Operation::BindImagePreset(connection_id,preset_id,policy,parameters)).await
+pub async fn gateway_bind_preset(window:tauri::WebviewWindow,connection_id:String,preset_id:String,policy:quickgen_desktop::image_protocol::ImageEditPolicy,parameters:quickgen_desktop::contracts::Parameters,expected:serde_json::Value)->Reply{
+ gateway_authorized(window.label())?;dispatch(window,Operation::BindImagePreset(connection_id,preset_id,policy,parameters,expected)).await
 }
 
 #[tauri::command]
@@ -472,7 +472,7 @@ pub async fn gateway_image_binding(window:tauri::WebviewWindow,reference:quickge
  gateway_authorized(window.label())?;dispatch(window,Operation::ReadImageBinding(reference)).await
 }
 #[tauri::command]
-pub async fn gateway_unbind_preset(window:tauri::WebviewWindow,preset_id:String,expected:quickgen_desktop::contracts::CapabilityRef)->Reply{
+pub async fn gateway_unbind_preset(window:tauri::WebviewWindow,preset_id:String,expected:serde_json::Value)->Reply{
  gateway_authorized(window.label())?;dispatch(window,Operation::UnbindImagePreset(preset_id,expected)).await
 }
 

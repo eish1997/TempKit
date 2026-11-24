@@ -1,5 +1,9 @@
 # QuickGen Windows 宿主
 
+> 2026-11-24 最新日常版已更新并启动：ACB65A1A1B89，统一禁用网页默认右键菜单，保留自定义右键。自动验证通过，实际桌面效果待观察；旧版备份及完整SHA见设置整理计划末尾。
+
+> 2026-11-24 日常文件已按用户授权替换为草稿保护返修版7B2FFDEFAA9D（desktop/src-tauri/target/release/quickgen-desktop.exe）。未启动日常实例；添加连接错误未定位及部分原生待验收继续保留。旧版备份和回退见设置整理计划末尾；下方早期交付摘要属于历史。
+
 > 当前状态：两项交付审查返修及验收已完成，包含隔离端到端、用户新增控件外观确认及新包身份核对。当前交付为QuickGen-Windows-candidate-9b2a33b08a6a.zip；原收口记录保留为历史，唯一状态见资源与任务计划。
 ## 当前正式入口（2026-11-13）
 
@@ -68,3 +72,23 @@ node scripts/test-theme.cjs
 配置位于 Tauri app_data_dir 返回的应用目录中的 config.json，封面在 covers/；实际绝对路径依当前 Windows 用户环境确定。模拟触发写到 app_log_dir 下 triggers.jsonl。待处理图片不写配置。不要在旧开发宿主运行时切换原生命令版本；正式验收优先使用同次构建的内嵌资源 exe。自动测试不替代原生拖放、实际图片解码、穿透或动画录屏验收。
 
 当前桌面入口位于系统托盘：左键打开面板，右键可打开面板或退出QuickGen；主窗口与能力管理窗口不显示任务栏按钮。图片与面板共用1px描边及主题色。
+
+
+## 设置整理开发候选（2026-11-23）
+
+设置入口位于主面板底部工具区。连接在“设置 → 模型连接”，调用额度独立展示，结果暂存/拖出副本/完整恢复副本位于“存储与恢复”。具体模型配置从预设库已添加项或卡片右键“模型设置”进入。
+
+本轮独立输出至 `target-settings-reorganization`，保留原 `src-tauri/target/release` 运行程序。候选使用 `--isolated-data <绝对空目录>` 验证，不迁移生产数据、不调用收费模型。默认实例仍使用原全局快捷键，验证前须由用户正常退出占用快捷键的日常实例；不要强杀或覆盖在用程序。最终候选SHA与原生待验收项见 `docs/quickgen/settings-reorganization-plan.md`。
+
+
+2026-11-23 设置整理交付补记：候选9E86D2A709D2为最终交付程序，菜单点击问题已修复并经用户确认；用户确认其余已测项目通过及正常退出重开。实际范围和未单独验证的分支见设置整理计划末尾，不沿用前文开发候选“尚待菜单复验”的临时状态。保留原程序及全部旧包，未进行生产切换或付费模型调用。
+
+## 富文本便签与桌面画笔（M阶段）
+
+当前实现与证据见 `../docs/quickgen/notes-integration-plan.md` 第9节及末尾检查点，使用说明为 `notes-usage.md`、恢复规则为 `notes-recovery.md`。开发构建和npm正式构建先执行 `scripts/build-note-editor.mjs`，把固定ProseMirror依赖离线打入界面；第三方许可位于 `ui/vendor/licenses`。
+
+独立输出使用 `CARGO_TARGET_DIR=<绝对路径>/src-tauri/target/notes-rich` 后运行 `scripts/desktop.cmd build`；诊断版另加 `-- --features desktop-diagnostics`。不要覆盖日常 `target/release` 或已启动验收exe。`package-candidate.ps1 -Stage notes-rich`核对冻结构建输入，并附隔离启动脚本及许可；诊断版不能冒充默认交付。
+
+本阶段起，任何显式 `--isolated-data` 实例都不注册全局Alt+Backquote，可与日常版并存；面板及窗口内操作仍可用。日常实例快捷键不变。测试候选必须使用独立绝对目录，不带参数直接启动会使用日常数据。
+
+`test-rich-desktop.ps1`只在独立且不切换的Windows桌面运行指定隔离候选，记录完整子进程内存、宿主结果及原生窗口状态；不发送物理输入。`verify-rich-recovery.py`仅接受M阶段证据目录，检查复制/旧库升级/异常退出后恢复。原生输入法、实际拖擦、跨应用拖出和混合DPI现场仍需最终手测，不能用这些脚本替代。

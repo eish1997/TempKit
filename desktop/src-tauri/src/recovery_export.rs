@@ -66,7 +66,7 @@ impl ResourceService {
         let report=json!({"notes":notes,"resources":inventory,"tasks":self.task_snapshot()?,"scene":self.scene_snapshot()?,"configBackup":config_backup});
         let bytes=serde_json::to_vec_pretty(&report).map_err(|e|e.to_string())?;
         files.push(json!({"path":"inventory.json","sha256":write_verified(&folder.join("inventory.json"),&bytes)?}));
-        let manifest=json!({"format":"quickgen-recovery-v1","databaseSchema":crate::store::SCHEMA_VERSION,"resourceCount":inventory.len(),"noteCount":notes.len(),"files":files,"legacyRollback":"Old executables cannot read changes created after activation. Keep this entire bundle and the original store; never delete the new database to force rollback."});
+        let manifest=json!({"format":"quickgen-recovery-v1","databaseSchema":crate::store::SCHEMA_VERSION,"noteDocumentVersion":1,"resourceCount":inventory.len(),"noteCount":notes.len(),"files":files,"legacyRollback":"Old executables cannot read changes created after activation. Keep this entire bundle and the original store; never delete the new database to force rollback."});
         write_verified(&folder.join("manifest.json"),&serde_json::to_vec_pretty(&manifest).map_err(|e|e.to_string())?)?;
         Ok(json!({"directory":folder,"manifest":manifest}))
     }
@@ -78,6 +78,9 @@ impl ResourceService {
   let root=std::env::temp_dir().join(format!("quickgen-note-export-{}-{}",std::process::id(),std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
   let mut service=ResourceService::open(&root).unwrap();let blank=service.note_create().unwrap();let edited=service.note_create().unwrap();
   let edited=service.note_patch(&edited.id,NotePatch::Text{revision:0,text:"中文恢复\nsecond line".into()}).unwrap();
+  let mut document=edited.document.clone();document["doc"]["content"][0]["content"][0]["marks"]=json!([{"type":"highlight"}]);
+  let edited=service.note_patch(&edited.id,NotePatch::Document{revision:edited.text_revision,document}).unwrap();
+  let edited=service.note_patch(&edited.id,NotePatch::Theme{revision:0,theme:"paper".into()}).unwrap();
   let edited=service.note_patch(&edited.id,NotePatch::Flags{revision:0,resident:false,always_on_top:true}).unwrap();
   service.note_patch(&edited.id,NotePatch::Geometry{revision:0,x:120.,y:140.,width:320.,height:260.,monitor:"isolated-monitor".into()}).unwrap();
   let removed=service.note_create().unwrap();service.note_patch(&removed.id,NotePatch::Deleted{revision:0,deleted:true}).unwrap();

@@ -33,3 +33,6 @@
  #notes-entry:hover .note-front{transform:rotate(4deg)}
 }
 #panel-bottom-tools{flex-shrink:0}#dock.morphing #panel-bottom-tools{visibility:hidden}#dock[data-edge=left] #panel-bottom-tools #notes-entry{left:-8px}
+
+#panel-bottom-tools #settings{position:absolute;right:0;bottom:2px;width:24px;height:24px;color:var(--muted)}
+#settings:hover{background:var(--hover);color:var(--text)}

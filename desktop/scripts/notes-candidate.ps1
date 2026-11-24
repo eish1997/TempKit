@@ -1,7 +1,7 @@
-param([ValidateSet('build','test','start')][string]$Action='test',[string]$IsolatedData)
+param([ValidateSet('build','test','start')][string]$Action='test',[string]$IsolatedData,[string]$TargetDirectory)
 $ErrorActionPreference='Stop'
 $desktopRoot=Split-Path -Parent $PSScriptRoot
-$target=Join-Path $desktopRoot 'src-tauri/target/notes'
+$target=if($TargetDirectory){if(-not [IO.Path]::IsPathRooted($TargetDirectory)){throw 'Absolute target directory required.'};$TargetDirectory}else{Join-Path $desktopRoot 'src-tauri/target/notes'}
 if($Action -eq 'start'){
  if(-not $IsolatedData -or -not [IO.Path]::IsPathRooted($IsolatedData)){throw 'Explicit absolute isolated directory required.'}
  $exe=Join-Path $target 'release/quickgen-desktop.exe'

@@ -48,6 +48,10 @@ impl CredentialVault{
   let(path,_)=self.location(binding)?;
   match fs::remove_file(path){Ok(())=>Ok(()),Err(e) if e.kind()==std::io::ErrorKind::NotFound=>Ok(()),Err(_)=>Err("connection revoked but credential removal failed; retry removal".into())}
  }
+ pub fn contains(&self,binding:&str)->Result<bool,String>{
+  let(path,_)=self.location(binding)?;
+  path.try_exists().map_err(|_|"credential presence unavailable".into())
+ }
 }
 #[cfg(test)]mod tests{
  use super::*;

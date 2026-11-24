@@ -1,6 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 mod board;
 mod note_windows;
+mod ink_windows;
+mod ink_occlusion;
 mod storage;
 mod overlay_support;
 mod geometry;

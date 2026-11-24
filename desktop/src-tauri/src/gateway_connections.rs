@@ -5,6 +5,27 @@ fn binding(profile:&GatewayProfile,reference:&str)->Result<String,String>{
  serde_json::to_string(&(&profile.connection_id,&profile.profile_id,&profile.account_id,reference)).map_err(|_|"invalid credential binding".into())
 }
 impl ResourceService{
+ /// Display-only metadata. The profile validator forbids userinfo, query and fragment.
+ pub fn gateway_connection_summaries(&self)->Result<Vec<serde_json::Value>,String>{
+  self.gateway_connections()?.into_iter().map(|connection|{
+   let profile=self.gateway_profile(&connection.profile_id)?;profile.bind(&connection)?;
+   let mut value=serde_json::to_value(&connection).map_err(|_|"connection summary unavailable")?;
+   value["account_id"]=serde_json::json!(profile.account_id);
+   value["base_url"]=serde_json::json!(profile.base_url);
+   let mut pending=false;
+   if connection.status==ConnectionStatus::Revoked{
+    let original:String=self.store.connection.query_row("SELECT connection_json FROM gateway_connections WHERE connection_id=?1",[&connection.id],|r|r.get(0)).map_err(|_|"connection record unavailable")?;
+    let original:Connection=serde_json::from_str(&original).map_err(|_|"invalid connection record")?;
+    let mut references:Vec<String>=original.credential_ref.into_iter().collect();
+    let mut query=self.store.connection.prepare("SELECT credential_ref FROM gateway_credential_rotations WHERE connection_id=?1").map_err(|_|"credential history unavailable")?;
+    references.extend(query.query_map([&connection.id],|r|r.get::<_,String>(0)).map_err(|_|"credential history unavailable")?.collect::<Result<Vec<_>,_>>().map_err(|_|"credential history unavailable")?);
+    let vault=CredentialVault::open(&self.root.join("credentials"))?;
+    for reference in references{pending|=vault.contains(&binding(&profile,&reference)?)?;}
+   }
+   value["credential_cleanup_pending"]=serde_json::json!(pending);
+   Ok(value)
+  }).collect()
+ }
  pub fn gateway_connections(&self)->Result<Vec<Connection>,String>{
   let mut statement=self.store.connection.prepare("SELECT connection_json,revoked FROM gateway_connections ORDER BY connection_id").map_err(|_|"connection catalogue unavailable")?;
   let rows=statement.query_map([],|r|Ok((r.get::<_,String>(0)?,r.get::<_,bool>(1)?))).map_err(|_|"connection catalogue unavailable")?;
@@ -104,6 +125,12 @@ impl ResourceService{
   let root=std::env::temp_dir().join(format!("quickgen-rotation-{}-{}",std::process::id(),std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
   let mut host=ResourceService::open(&root).unwrap();let profile=GatewayProfile{schema_version:1,profile_id:"p".into(),connection_id:"c".into(),account_id:"same-account".into(),base_url:"http://127.0.0.1:1".into()};
   let first=host.configure_gateway(profile.clone(),Secret::from_bytes(b"synthetic-old".to_vec())).unwrap();let old=first.credential_ref.as_deref().unwrap();
+  let summaries=host.gateway_connection_summaries().unwrap();
+  assert_eq!(summaries[0]["account_id"],"same-account");
+  assert_eq!(summaries[0]["base_url"],"http://127.0.0.1:1");
+  assert_eq!(summaries[0]["id"],first.id);
+  assert!(!serde_json::to_string(&summaries).unwrap().contains("synthetic-old"));
+  assert_eq!(summaries[0].as_object().unwrap().len(),9);
   host.record_gateway_check_version("c",old,Some(vec!["fixture".into()])).unwrap();let in_flight=host.gateway_secret("c").unwrap();
   assert!(host.rotate_gateway_credential("c",old,"different-account",Secret::from_bytes(b"wrong-account".to_vec())).is_err());
   host.store.connection.execute_batch("CREATE TRIGGER reject_rotation AFTER INSERT ON gateway_credential_rotations BEGIN SELECT RAISE(FAIL,'isolated rotation failure'); END;").unwrap();
@@ -135,6 +162,15 @@ impl ResourceService{
   host.store.connection.execute_batch("DROP TRIGGER reject_after_connection;").unwrap();drop(host);
   let mut host=ResourceService::open(&root).unwrap();host.configure_gateway(profile,Secret::from_bytes(b"synthetic-retry".to_vec())).unwrap();
   assert_eq!(host.gateway_secret("retry").unwrap().bytes(),b"synthetic-retry");assert_eq!(host.gateway_secret("original").unwrap().bytes(),b"synthetic-original");
+ }
+ #[test]fn revoked_summary_recovers_pending_cleanup_after_restart(){
+  let root=std::env::temp_dir().join(format!("quickgen-cleanup-summary-{}-{}",std::process::id(),std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));
+  let mut host=ResourceService::open(&root).unwrap();
+  host.configure_gateway(GatewayProfile{schema_version:1,profile_id:"p".into(),connection_id:"c".into(),account_id:"account".into(),base_url:"http://127.0.0.1:1".into()},Secret::from_bytes(b"synthetic".to_vec())).unwrap();
+  host.store.connection.execute("UPDATE gateway_connections SET revoked=1 WHERE connection_id='c'",[]).unwrap();drop(host);
+  let mut host=ResourceService::open(&root).unwrap();assert_eq!(host.gateway_connection_summaries().unwrap()[0]["credential_cleanup_pending"],true);
+  host.revoke_gateway("c").unwrap();drop(host);
+  let host=ResourceService::open(&root).unwrap();assert_eq!(host.gateway_connection_summaries().unwrap()[0]["credential_cleanup_pending"],false);
  }
  #[test]fn credentials_survive_restart_and_revocation_never_retargets_history(){
   let root=std::env::temp_dir().join(format!("quickgen-connection-{}-{}",std::process::id(),std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()));

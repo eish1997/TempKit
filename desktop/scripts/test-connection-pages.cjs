@@ -1,0 +1,14 @@
+const {test}=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs');
+class Element{
+ constructor(tag){this.tag=tag;this.children=[];this.hidden=false;this.disabled=false;}
+ append(...items){this.children.push(...items);}
+ replaceChildren(...items){this.children=items;}
+ setAttribute(){}
+ querySelector(selector){return this.all().find(e=>selector==='#'+e.id)||null;}
+ all(){return this.children.flatMap(c=>[c,...c.all()]);}
+}
+function fixture(rows){const context={window:{},Map,document:{createElement:tag=>new Element(tag)}};vm.runInNewContext(fs.readFileSync('desktop/ui/connection-pages.js','utf8'),context);const root=new Element('section'),calls=[],errors=[];const ctx={root,active:()=>true,onDispose(){},push(page){this.pushed=page;},fail:e=>errors.push(String(e)),invoke:async(name,args)=>{calls.push({name,args});if(name==='gateway_connections')return rows;if(name==='gateway_probe')return {authenticated:true,models:['long-model-id','中文模型']};if(name==='gateway_revoke'){rows[0].status='revoked';return null;}throw Error('unexpected '+name);}};return {pages:context.window.quickgenConnectionPages,ctx,root,calls,errors};}
+const row=()=>({id:'gateway-123456789',account_id:'account-a',base_url:'https://example.com/',status:'ready',credential_ref:'ref'});
+test('list prioritizes account and address; no automatic discovery',async()=>{const f=fixture([row()]);await f.pages.list().mount(f.ctx);assert.match(f.root.querySelector('#connection-'+row().id).textContent,/account-a.*example/);assert.deepEqual(f.calls.map(c=>c.name),['gateway_connections']);});
+test('detail discovery is explicit and expandable; revoke requires confirmation',async()=>{const f=fixture([row()]);await f.pages.detail(row().id).mount(f.ctx);assert.equal(f.calls.length,1);await f.root.querySelector('#connection-probe').onclick();assert(f.root.all().some(e=>e.textContent?.includes('认证通过 · 可见 2')));assert.equal(f.root.all().filter(e=>e.tag==='textarea').length,2);f.root.querySelector('#connection-revoke').onclick();assert(!f.calls.some(c=>c.name==='gateway_revoke'));await f.root.all().find(e=>e.textContent==='确认撤销').onclick();assert.equal(f.calls.filter(c=>c.name==='gateway_revoke').length,1);assert.equal(f.root.querySelector('#connection-probe').disabled,true);assert.equal(f.root.querySelector('#connection-clear-retry').hidden,true);assert(!f.calls.some(c=>c.name.includes('task')));});
+test('revoked connections stay visible without detection or routine credential clearing',async()=>{const c=row();c.status='revoked';const f=fixture([c]);await f.pages.detail(c.id).mount(f.ctx);assert.equal(f.root.querySelector('#connection-probe'),null);assert.equal(f.root.querySelector('#connection-revoke').hidden,true);assert.equal(f.root.querySelector('#connection-clear-retry').hidden,true);});

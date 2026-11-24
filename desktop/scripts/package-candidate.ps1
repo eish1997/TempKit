@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$ExpectedSHA256,[Parameter(Mandatory=$true)][string]$SourceManifest,[string]$ExecutablePath,[ValidateSet('reliable-base','notes-integration','generation')][string]$Stage='reliable-base',[string]$OutputDirectory,[string]$BuildSourceManifest)
+param([Parameter(Mandatory=$true)][string]$ExpectedSHA256,[Parameter(Mandatory=$true)][string]$SourceManifest,[string]$ExecutablePath,[ValidateSet('reliable-base','notes-integration','notes-rich','generation')][string]$Stage='reliable-base',[string]$OutputDirectory,[string]$BuildSourceManifest)
 $ErrorActionPreference = 'Stop'
 $desktopRoot = Split-Path -Parent $PSScriptRoot
 $binary = if($ExecutablePath){(Resolve-Path -LiteralPath $ExecutablePath).Path}else{Join-Path $desktopRoot 'src-tauri\target\release\quickgen-desktop.exe'}
@@ -13,8 +13,8 @@ foreach($entry in $sourceHashes.PSObject.Properties){
  if((Get-FileHash -LiteralPath $path).Hash -ne $entry.Value){throw ('Source changed after acceptance: '+$entry.Name)}
 }
 $buildSourceHashes=$null
-if($Stage -eq 'generation'){
- if(-not $BuildSourceManifest){throw 'Generation packaging requires the frozen executable build source manifest.'}
+if($Stage -in @('generation','notes-rich')){
+ if(-not $BuildSourceManifest){throw 'Packaging this stage requires the frozen executable build source manifest.'}
  $buildSourceHashes=Get-Content -LiteralPath $BuildSourceManifest -Raw|ConvertFrom-Json
  foreach($entry in $buildSourceHashes.PSObject.Properties){
   $relative=$entry.Name.Replace('\','/')
@@ -72,7 +72,17 @@ QuickGen位于系统托盘，不占任务栏；左键打开面板，右键可退
 多屏、混合DPI与真实模型/Harness能力仍未交付。
 此包不是安装器，不添加开机启动。无需从源码构建即可启动。
 '@
-if($Stage -eq 'notes-integration'){$notes=Get-Content -LiteralPath (Join-Path $desktopRoot '../docs/quickgen/notes-usage.md') -Raw}
+if($Stage -in @('notes-integration','notes-rich')){$notes=Get-Content -LiteralPath (Join-Path $desktopRoot '../docs/quickgen/notes-usage.md') -Raw -Encoding UTF8}
+if($Stage -eq 'notes-rich'){
+ Copy-Item -LiteralPath (Join-Path $desktopRoot 'ui/vendor/licenses') -Destination (Join-Path $folder '第三方许可') -Recurse
+ $launcher=@'
+@echo off
+setlocal
+set "QUICKGEN_CANDIDATE_DATA=%~dp0isolated-data"
+start "" "%~dp0QuickGen.exe" --isolated-data "%QUICKGEN_CANDIDATE_DATA%"
+'@
+ Set-Content -LiteralPath (Join-Path $folder '启动隔离候选.cmd') -Value $launcher -Encoding ASCII
+}
 if($Stage -eq 'generation'){
  $notes=Get-Content -LiteralPath (Join-Path $desktopRoot '../docs/quickgen/generation-usage.md') -Raw
  $notes=$notes.Replace('(generation-plan.md)','(验收状态.md)').Replace('(recovery.md)','(备份与恢复.md)')
@@ -80,7 +90,7 @@ if($Stage -eq 'generation'){
  Copy-Item -LiteralPath (Join-Path $desktopRoot '../docs/quickgen/generation-compatibility.json') -Destination (Join-Path $folder '兼容配置参考.json')
 }
 Set-Content -LiteralPath (Join-Path $folder '使用说明.txt') -Value $notes -Encoding UTF8
-$recoverySource = if($Stage -eq 'generation'){Join-Path $desktopRoot '../docs/quickgen/generation-recovery.md'}elseif($Stage -eq 'notes-integration'){Join-Path $desktopRoot '../docs/quickgen/notes-recovery.md'}else{Join-Path $desktopRoot '../docs/quickgen/recovery.md'}
+$recoverySource = if($Stage -eq 'generation'){Join-Path $desktopRoot '../docs/quickgen/generation-recovery.md'}elseif($Stage -in @('notes-integration','notes-rich')){Join-Path $desktopRoot '../docs/quickgen/notes-recovery.md'}else{Join-Path $desktopRoot '../docs/quickgen/recovery.md'}
 Copy-Item -LiteralPath $recoverySource -Destination (Join-Path $folder '备份与恢复.md')
 Set-Content -LiteralPath (Join-Path $folder 'SHA256SUMS.txt') -Value "$digest  QuickGen.exe" -Encoding ASCII
 Compress-Archive -LiteralPath $folder -DestinationPath $zip
@@ -93,6 +103,12 @@ try {
   $expected=@('QuickGen.exe','构建信息.json','使用说明.txt','备份与恢复.md','SHA256SUMS.txt','验收状态.md','兼容配置参考.json')|Sort-Object
   $actual=@($archive.Entries|Where-Object {$_.Name}|ForEach-Object {$_.Name})|Sort-Object
   if(Compare-Object $expected $actual){throw 'Unexpected generation package contents.'}
+ }
+ if($Stage -eq 'notes-rich'){
+  $expected=@('QuickGen.exe','构建信息.json','使用说明.txt','备份与恢复.md','SHA256SUMS.txt','启动隔离候选.cmd')
+  $expected+=@(Get-ChildItem -LiteralPath (Join-Path $desktopRoot 'ui/vendor/licenses') -File | ForEach-Object {'第三方许可/'+$_.Name})
+  $actual=@($archive.Entries|Where-Object {$_.Name}|ForEach-Object {($_.FullName.Replace('\','/') -split '/',2)[1]})
+  if(Compare-Object ($expected|Sort-Object) ($actual|Sort-Object)){throw 'Unexpected notes-rich package contents.'}
  }
  if ($entry.Count -ne 1) { throw 'Archive must contain exactly one executable.' }
  $stream = $entry[0].Open()

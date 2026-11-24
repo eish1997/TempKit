@@ -24,3 +24,5 @@ desktop/src-tauri/gen/
 .codex/
 .agents/
 .aws/
+
+/desktop/target-settings-reorganization/

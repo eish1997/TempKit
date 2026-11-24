@@ -9,7 +9,7 @@ function fixture(){
   if(failNext){failNext=false;throw Error('disk full')}
   if(!abilities.some(a=>a.id===args.ability.id))abilities.push(structuredClone(args.ability));
  }});
- vm.runInContext(source.slice(source.indexOf('let abilities='),source.indexOf('async function library()')),ctx);
+ vm.runInContext(source.slice(source.indexOf('let abilities='),source.indexOf('function libraryPage()')),ctx);
  return {save:a=>{ctx.next=a;return vm.runInContext('save(next)',ctx)},ids:()=>abilities.map(a=>a.id),fail:()=>failNext=true};
 }
 test('rapid additions keep both cards instead of overwriting one snapshot',async()=>{

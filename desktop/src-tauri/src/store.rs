@@ -2,7 +2,7 @@
 use rusqlite::{Connection, TransactionBehavior};
 use std::path::Path;
 
-pub const SCHEMA_VERSION: i64 = 14;
+pub const SCHEMA_VERSION: i64 = 15;
 pub struct Store { pub(crate) connection: Connection }
 
 impl Store {
@@ -33,6 +33,7 @@ impl Store {
         if locked_version < 12 {tx.execute_batch(include_str!("store_v12.sql")).map_err(|e|e.to_string())?;}
         if locked_version < 13 {tx.execute_batch(include_str!("store_v13.sql")).map_err(|e|e.to_string())?;}
         if locked_version < 14 {tx.execute_batch(include_str!("store_v14.sql")).map_err(|e|e.to_string())?;}
+        if locked_version < 15 {crate::notes::migrate_v15(&tx)?;}
         tx.commit().map_err(|e| e.to_string())?;
         Ok(Self { connection })
     }
@@ -47,10 +48,10 @@ mod tests {
     #[test]fn v13_cost_scope_upgrade_is_atomic(){
         for fail in [false,true]{
             let p=path();let s=Store::open(&p).unwrap();
-            s.connection.execute_batch("DROP TABLE image_cost_scopes; DELETE FROM schema_migrations WHERE version=14; PRAGMA user_version=13; INSERT INTO image_budget VALUES(1,2000000);").unwrap();
+            s.connection.execute_batch("DROP TABLE image_cost_scopes; DROP TRIGGER note_tag_birth_no_update; DROP TABLE note_tag_births; DELETE FROM schema_migrations WHERE version>=14; PRAGMA user_version=13; INSERT INTO image_budget VALUES(1,2000000);").unwrap();
             if fail{s.connection.execute_batch("CREATE TABLE image_cost_scopes(original TEXT); INSERT INTO image_cost_scopes VALUES('preserved');").unwrap();}drop(s);
             let result=Store::open(&p);
-            if fail{assert!(result.is_err());}else{assert_eq!(result.unwrap().schema_version().unwrap(),14);}
+            if fail{assert!(result.is_err());}else{assert_eq!(result.unwrap().schema_version().unwrap(),SCHEMA_VERSION);}
             let c=Connection::open(&p).unwrap();assert_eq!(c.query_row("SELECT limit_micros FROM image_budget",[],|r|r.get::<_,i64>(0)).unwrap(),2000000);
             if fail{assert_eq!(c.pragma_query_value(None,"user_version",|r|r.get::<_,i64>(0)).unwrap(),13);assert_eq!(c.query_row("SELECT original FROM image_cost_scopes",[],|r|r.get::<_,String>(0)).unwrap(),"preserved");}
         }

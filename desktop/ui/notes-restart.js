@@ -18,8 +18,8 @@ globalThis.quickgenNotesRestart={async run(api){
    try{await invoke('notes_test_reload',{id:note.id,token:n});const editor=await ack;if(editor.error||editor.draft!==note.text||editor.status)throw Error('Restart editor text mismatch');result.editors.push({id:note.id,text:editor.draft})}finally{clearTimeout(timeout);pending.delete(n)}
   }
   await invoke('notes_flush');result.after=await invoke('notes_list');
-  const durable=notes=>JSON.stringify(notes.map(({id,text,resident,always_on_top,deleted})=>({id,text,resident,always_on_top,deleted})).sort((a,b)=>a.id.localeCompare(b.id)));
-  if(durable(before)!==durable(result.after))throw Error('Restart changed durable note content or flags');
+  const durable=notes=>JSON.stringify(notes.map(({id,text,document,theme,text_revision,theme_revision,created_at,resident,always_on_top,deleted})=>({id,text,document,theme,text_revision,theme_revision,created_at,resident,always_on_top,deleted})).sort((a,b)=>a.id.localeCompare(b.id)));
+  if(durable(before)!==durable(result.after))throw Error('Restart changed durable note document, theme, versions or flags');
   result.windows=windows;result.ok=true;result.flushExit=true;
  }catch(error){result.error=String(error)}finally{unlisten?.();await invoke('board_smoke_finish',{result})}
 }};

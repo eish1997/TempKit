@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="zh-CN">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>QuickGen · 单屏画板</title><link rel="stylesheet" href="board.css?v=desktop-finish-1"><link rel="stylesheet" href="board-notes.css"></head>
+<head><meta charset="utf-8"><script src="webview-context-menu.js"></script><meta name="viewport" content="width=device-width,initial-scale=1"><title>QuickGen · 单屏画板</title><link rel="stylesheet" href="board.css?v=desktop-finish-1"><link rel="stylesheet" href="board-notes.css"><link rel="stylesheet" href="note-appearance.css"><link rel="stylesheet" href="ink-tools.css"></head>
 <body>
   <div id="desktop" hidden></div><input id="simulate-failure" type="checkbox" hidden>
   <div id="canvas" hidden aria-label="图片画板"><div id="world"></div></div>
@@ -15,14 +15,16 @@
       <header><button id="import" aria-label="添加图片" data-icon="image-plus"></button><button id="theme" aria-label="切换浅色主题" data-icon="monitor"></button><button id="add-ability" aria-label="自定义能力" data-icon="plus"></button><button id="library" aria-label="预设库" data-icon="library"></button><button id="height" aria-label="调整卡片高度" data-icon="arrow-up-down"></button><span></span><button id="pin" aria-label="常驻面板" aria-pressed="false" data-icon="pin"></button></header>
       <div id="abilities"></div>
       <div id="receipt" hidden><img id="receipt-image" alt="任务输入"><div><strong id="receipt-name"></strong><span>任务记录</span></div><button id="receipt-show" hidden aria-label="显示隐藏任务" title="显示隐藏任务" data-icon="panel-top"></button><button id="receipt-close" aria-label="关闭任务提示" data-icon="x"></button></div>
-      <div id="panel-bottom-tools" role="toolbar" aria-label="面板工具"><button id="notes-entry" aria-label="便签：右键新建" aria-expanded="false"><span class="note-stack-icon" aria-hidden="true"><i></i><i class="note-front"><svg class="note-writing" viewBox="0 0 33 35" fill="none"><g class="note-rules"><path d="M6 11H27 M6 18H27 M6 25H27"/></g><g class="note-ink"><path d="M6 10c2-4 3 3 5-1s2 3 4 0 1-3 2-1 2 2 3 0 2 1 3 0 2 0 3-1"/><path d="M6 17c2 1 2-4 3-2s0 4 2 2 2-3 3-1 2 1 3-1 1 4 3 1 2 2 4 0"/><path d="M6 24c1-3 3 2 4-1s2 2 3 0 2-2 3 0 2 1 3-1 2 2 4 0"/></g></svg></i></span></button></div>
+      <div id="panel-bottom-tools" role="toolbar" aria-label="面板工具"><button id="ink-entry" aria-label="画笔：双击输入文字，按住右键擦除" aria-pressed="false" aria-controls="ink-tools" aria-expanded="false"><span class="screen-pen-icon" aria-hidden="true"></span></button><button id="settings" aria-label="设置" data-icon="settings-2"></button><button id="notes-entry" aria-label="便签：右键新建" aria-expanded="false"><span class="note-stack-icon" aria-hidden="true"><i></i><i class="note-front"><svg class="note-writing" viewBox="0 0 33 35" fill="none"><g class="note-rules"><path d="M6 11H27 M6 18H27 M6 25H27"/></g><g class="note-ink"><path d="M6 10c2-4 3 3 5-1s2 3 4 0 1-3 2-1 2 2 3 0 2 1 3 0 2 0 3-1"/><path d="M6 17c2 1 2-4 3-2s0 4 2 2 2-3 3-1 2 1 3-1 1 4 3 1 2 2 4 0"/><path d="M6 24c1-3 3 2 4-1s2 2 3 0 2-2 3 0 2 1 3-1 2 2 4 0"/></g></svg></i></span></button></div>
     </div>
   </section>
   <button id="notch" hidden aria-label="展开能力面板" data-icon="panel-top"></button>
-  <div id="panel-hint" role="status" hidden><span id="hint-text"></span><button id="hint-action" hidden></button><button id="hint-close" aria-label="关闭提示" data-icon="x"></button></div>
+  <div id="ink-tools" role="toolbar" aria-label="画笔颜色和线宽" hidden></div><div id="panel-hint" role="status" hidden><span id="hint-text"></span><button id="hint-action" hidden></button><button id="hint-close" aria-label="关闭提示" data-icon="x"></button></div>
   <div id="notice" role="status" hidden></div>
   <input id="files" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
-  <script src="icons.js"></script><script src="theme-icons.js"></script><script src="overlay-icons.js"></script><script src="board-panel-layout.js"></script><script src="board-motion.js"></script><script src="legacy-snapshot.js"></script><script src="durable-client.js"></script><script src="notes-overview.js"></script><script src="panel-hints.js"></script><script src="clipboard-intake.js"></script><script src="board.js"></script>
+  <script src="icons.js"></script><script src="theme-icons.js"></script><script src="overlay-icons.js"></script><script src="board-panel-layout.js"></script><script src="board-motion.js"></script><script src="legacy-snapshot.js"></script><script src="durable-client.js"></script><script src="note-appearance.js"></script><script src="notes-overview.js"></script><script src="panel-hints.js"></script><script src="clipboard-intake.js"></script><script src="ink-tools.js"></script><script src="board.js"></script>
 </body></html>
+
+
 
 

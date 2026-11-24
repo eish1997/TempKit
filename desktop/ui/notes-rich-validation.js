@@ -1,0 +1,42 @@
+'use strict';
+globalThis.quickgenNotesRichValidation={async run(api,mode){
+ const invoke=window.__TAURI__.core.invoke,sleep=ms=>new Promise(r=>setTimeout(r,ms)),pending=new Map(),expected=new Map();
+ const result={ok:false,kind:mode,notes:100,residentWindows:10,durationTargetMs:mode==='notes-rich-capacity'?1800000:12000,edits:0,cycles:0,inkSteps:0,maxEditMs:0,editSamples:[],checks:[],physicalInputTest:false};
+ const require=(value,message)=>{if(!value)throw Error(message)},canonical=value=>JSON.stringify(value,(_,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.entries(v).sort(([a],[b])=>a.localeCompare(b))):v);
+ const p=(content=[],todo=false,done=false)=>({type:'paragraph',attrs:{todo,done},...(content.length?{content}: {})}),t=(text,marks)=>({type:'text',text,...(marks?{marks}: {})});
+ const fixture=i=>({version:1,doc:{type:'doc',content:[p([t(`混合便签 ${i} 中文`,[{type:'strong'}])]),{type:'blockquote',attrs:{id:`quote-${i}`},content:[p([t('引用与待办。'.repeat(8))],true,i%2===0),p([t('跨行'),{type:'hard_break'},t('文字')])]},{type:'horizontal_rule'},p([{type:'tag',attrs:{id:`tag-${i}`,label:'标签'+i,createdAt:0,color:['blue','green','pink'][i%3]}},t(' 高亮内容',[{type:'highlight'}])]),p()]}});
+ let token=0,unlisten,start;
+ const stage=async step=>{result.step=step;await invoke('board_capacity_progress',{result});};
+ const waitReady=async()=>{for(let n=0;n<3;n++){try{await invoke('notes_flush');return;}catch(e){if(n===2)throw e;}finally{await invoke('notes_release');}await sleep(300);}};
+ const verify=async()=>{const notes=await invoke('notes_list');require(notes.length===100,'note count changed');for(const note of notes){const e=expected.get(note.id);require(e&&canonical(note.document)===canonical(e.document)&&note.text===e.text&&note.theme===e.theme&&!note.deleted,'durable rich document mismatch '+note.id);}return notes;};
+ try{
+  await stage('initializing');require((await invoke('notes_list')).length===0,'requires fresh isolated data');
+  unlisten=await window.__TAURI__.event.listen('note-capacity-ack',e=>{const p=pending.get(e.payload.token);if(p?.id===e.payload.id){pending.delete(e.payload.token);clearTimeout(p.timeout);e.payload.error?p.reject(Error(e.payload.error)):p.resolve(e.payload);}});
+  const ids=[];
+  for(let i=0;i<100;i++){let n=await invoke('note_create');n=await invoke('note_patch',{id:n.id,patch:{field:'document',revision:n.text_revision,document:fixture(i)}});n=await invoke('note_patch',{id:n.id,patch:{field:'theme',revision:n.theme_revision,theme:['default','yellow','green','blue','pink','purple','paper'][i%7]}});if(i>=10)await invoke('note_set_resident',{id:n.id,resident:false});else ids.push(n.id);expected.set(n.id,n);}
+  const placed=await invoke('notes_list');require(new Set(placed.slice(0,10).map(n=>n.x+','+n.y)).size===10,'new notes overlap at identical positions');result.checks.push('new note placement reserves distinct durable origins');
+  for(const id of ids)await invoke('note_open',{id});await waitReady();const windows=await invoke('notes_capacity_windows');require(windows.total===10&&windows.visible===10,'expected 10 resident editors');
+  result.checks.push('100 structured documents / seven themes / tags / quotes / todo / 10 native editor windows');await stage('opening-ink');
+  await api.ink(true);for(let n=0;n<100;n++){const status=await invoke('ink_diagnostic',{action:'status'});if(status.ready===status.windows.length&&status.ready>0)break;if(n===99)throw Error('ink windows never ready');await sleep(100);}
+  result.activeInk=await invoke('ink_diagnostic',{action:'seed'});require(result.activeInk.active&&result.activeInk.objects===550&&result.activeInk.windows.every(w=>w.visible&&!w.transparent&&w.toolWindow),'active native annotation capture incorrect');
+  result.layer=await invoke('ink_diagnostic',{action:'layer'});result.translation=await invoke('ink_diagnostic',{action:'translate'});
+  await invoke('ink_clear',{stream:'diagnostic-clear',sequence:1});require((await invoke('ink_diagnostic',{action:'status'})).objects===0,'clear did not remove every monitor');
+  let snap=await invoke('ink_snapshot');await invoke('ink_mutate',{stream:'diagnostic-undo',sequence:1,epoch:snap.session.epoch,revision:snap.session.revision,mutation:{op:'undo'}});require((await invoke('ink_diagnostic',{action:'status'})).objects===550,'clear is not one undo');
+  await invoke('ink_clear',{stream:'diagnostic-clear',sequence:1});require((await invoke('ink_diagnostic',{action:'status'})).objects===550,'lost clear reply retry erased restored objects');
+  await api.ink(false);result.inactiveLayer=await invoke('ink_diagnostic',{action:'layer'});await invoke('ink_clear',{stream:'diagnostic-clear',sequence:2});require((await invoke('ink_diagnostic',{action:'status'})).objects===0,'inactive clear failed');await api.ink(true);
+  snap=await invoke('ink_snapshot');await invoke('ink_mutate',{stream:'diagnostic-undo',sequence:2,epoch:snap.session.epoch,revision:snap.session.revision,mutation:{op:'undo'}});require((await invoke('ink_diagnostic',{action:'status'})).objects===550,'inactive clear undo failed');result.checks.push('native clear flush / undo / lost reply receipt / inactive clear');
+  const sceneBefore=await invoke('scene_snapshot');start=performance.now();let nextEdit=0,nextCycle=0,nextReport=0,nextInk=0;await stage('measuring');
+  while(performance.now()-start<result.durationTargetMs){const elapsed=performance.now()-start;
+   if(elapsed>=nextCycle){await verify();await api.ink(false);const off=await invoke('ink_diagnostic',{action:'status'});require(!off.active&&off.windows.every(w=>w.transparent),'exit retained native mouse capture');result.inactiveInk=off;await api.set(true);require(document.querySelectorAll('#notes-overview .note-tile').length===100,'overview tiles missing');require((await invoke('notes_capacity_windows')).visible===0,'overview did not hide editors');await sleep(150);await api.set(false);require((await invoke('notes_capacity_windows')).visible===10,'resident editors not restored');await api.ink(true);result.cycles++;nextCycle=elapsed+30000;}
+   if(elapsed>=nextEdit){const id=ids[result.edits%10],before=expected.get(id),document=JSON.parse(JSON.stringify(before.document));document.doc.content[0].content=[t(`持续编辑 ${result.edits} 中文`,[{type:'strong'}])];document.doc.content[1].content[0].attrs.done=result.edits%2===0;const n=++token,at=performance.now();let timeout;
+    const ack=new Promise((resolve,reject)=>{timeout=setTimeout(()=>{pending.delete(n);reject(Error('editor save acknowledgement timed out'));},15000);pending.set(n,{id,resolve,reject,timeout});});
+    try{await invoke('notes_capacity_edit',{id,text:'',document,token:n});await ack;}finally{clearTimeout(timeout);pending.delete(n);}
+    const stored=await invoke('note_get',{id});require(canonical(stored.document)===canonical(document),'editor changed rich structure or tag timestamp');require(stored.theme===before.theme,'editing changed theme');expected.set(id,stored);const ms=performance.now()-at;result.maxEditMs=Math.max(result.maxEditMs,ms);result.editSamples.push(ms);result.edits++;nextEdit=elapsed+1000;
+   }
+   if(elapsed>=nextInk){await invoke('ink_diagnostic',{action:'step',step:result.inkSteps++});nextInk=elapsed+250;}
+   if(elapsed>=nextReport){result.elapsedMs=elapsed;await stage('measuring');nextReport=elapsed+10000;}await sleep(25);
+  }
+  while(result.inkSteps%4)await invoke('ink_diagnostic',{action:'step',step:result.inkSteps++});await api.ink(false);result.finalInk=await invoke('ink_diagnostic',{action:'status'});require(result.finalInk.objects===550&&!result.finalInk.active&&result.finalInk.windows.every(w=>w.transparent),'final objects / released input mismatch');
+  await invoke('notes_flush');result.finalNotes=await verify();require(canonical(await invoke('scene_snapshot'))===canonical(sceneBefore),'image scene changed');const exported=await invoke('recovery_export');require(exported.manifest.noteCount===100,'export count mismatch');result.exportDirectory=exported.directory;result.elapsedMs=performance.now()-start;result.checks.push('native capture enabled then released; serialized rich edits; exact final documents and themes; unchanged scene; recovery export');result.ok=true;result.flushExit=true;
+ }catch(error){result.error=String(error);}finally{unlisten?.();for(const p of pending.values())clearTimeout(p.timeout);await invoke('board_smoke_finish',{result});}
+}};
